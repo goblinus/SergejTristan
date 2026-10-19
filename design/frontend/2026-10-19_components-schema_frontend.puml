@@ -1,0 +1,139 @@
+@startuml 2026-10-19_компонентная-схема_frontend
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title Компонентная схема фронтенда «Дивидендный календарь» (MVP, раунд 2)
+
+package "types/ (модель данных, snake_case)" as types {
+  [Ticker DTO]
+  [Meeting DTO]
+  [RecordDate DTO]
+  [WatchlistItem DTO]
+  [Page<T> конверт]
+}
+
+package "api/ (HTTP-слой)" as api {
+  [http.ts\nfetch-обёртка, ApiError {detail}, таймаут] as http
+  [endpoints/tickers.ts] as epTickers
+  [endpoints/meetings.ts] as epMeetings
+  [endpoints/record-dates.ts] as epRecordDates
+  [endpoints/watchlist.ts] as epWatchlist
+}
+
+package "composables/ (состояние)" as composables {
+  [useCalendar\nобъединённый кэш meetings + record-dates] as useCalendar
+  [useWatchlist\nсписок + мутации add/remove + undo] as useWatchlist
+  [useTickersSearch\nсправочник MOEX, debounce 300 мс] as useSearch
+  [useMeetingDialog\nмодал ?meeting=<id>] as useDialog
+  [useSnackbar\nочередь уведомлений, undo-окно] as useSnackbar
+  [useConnectivity\nофлайн-состояние] as useConn
+}
+
+package "components/ (UI)" as components {
+  package "layout/" {
+    [AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)]
+    [BottomNav C-02\nмобильная навигация ≤640px,\nбейдж hot/critical на «Мои сторожки» (Р-9)]
+  }
+  package "ui/ (атомы ui-кита)" {
+    [AppButton C-03]
+    [TickerChip C-05]
+    [DeadlineIndicator C-07]
+    [Skeleton C-11]
+    [Snackbar C-12]
+    [StateBanner C-13\nempty/error/offline]
+    [DropdownList C-14\nвнутренний]
+  }
+  package "calendar/" {
+    [MonthFilter]
+    [MeetingsGrid] as MeetingsGrid
+    [MeetingCard C-06]
+    [UpcomingList]
+    [MeetingDetailsDialog C-08\nмодал / bottom-sheet]
+  }
+  package "watchlist/" {
+    [TickerAutocomplete C-04]
+    [StatusFilterChips C-10]
+    [WatchRow C-09]
+  }
+}
+
+package "pages/ (экраны)" as pages {
+  [CalendarPage\nroute: /calendar (+редирект /)] as CalendarPage
+  [WatchlistPage\nroute: /me] as WatchlistPage
+  [NotFoundPage\ncatch-all 404] as NotFoundPage
+}
+
+database "Backend API\n/api/v1" as BE
+
+' pages -> composables
+CalendarPage --> useCalendar
+CalendarPage --> useWatchlist : подсветка\nотслеживаемых
+CalendarPage --> useDialog
+WatchlistPage --> useWatchlist
+WatchlistPage --> useSearch
+
+' composables -> api
+useCalendar --> epMeetings
+useCalendar --> epRecordDates : отсечки\nбез собраний
+useDialog --> epMeetings : GET /meetings/{id}\n(deep-link)
+useSearch --> epTickers
+useWatchlist --> epWatchlist
+
+' api internals
+epTickers --> http
+epMeetings --> http
+epRecordDates --> http
+epWatchlist --> http
+http --> BE : HTTPS JSON {detail}
+
+' api -> types
+epTickers ..> [Ticker DTO]
+epMeetings ..> [Meeting DTO]
+epRecordDates ..> [RecordDate DTO]
+epWatchlist ..> [WatchlistItem DTO]
+epMeetings ..> [Page<T> конверт]
+
+' composition — каркас
+CalendarPage --> [AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)]
+WatchlistPage --> [AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)]
+[AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)] --> useConn : offline-бейдж
+[AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)] --> useCalendar : fetched_at\n(индикатор свежести)
+[AppHeader C-01\nвкладки, «обновлено N назад», «Обновить»,\nбейдж hot/critical на «Мои сторожки» (Р-9)] ..> useWatchlist : computed по items\n(бейдж hot/critical, скрыт при 0/до загрузки)
+[BottomNav C-02\nмобильная навигация ≤640px,\nбейдж hot/critical на «Мои сторожки» (Р-9)] ..> CalendarPage : навигация
+[BottomNav C-02\nмобильная навигация ≤640px,\nбейдж hot/critical на «Мои сторожки» (Р-9)] ..> useWatchlist : тот же computed\n(бейдж hot/critical)
+[Snackbar C-12] ..> useSnackbar
+
+' composition — S1
+CalendarPage --> [MonthFilter]
+CalendarPage --> MeetingsGrid
+CalendarPage --> [UpcomingList]
+CalendarPage --> [MeetingDetailsDialog C-08\nмодал / bottom-sheet]
+MeetingsGrid --> [MeetingCard C-06]
+[MeetingCard C-06] --> [TickerChip C-05]
+[MeetingCard C-06] --> [DeadlineIndicator C-07]
+[MeetingCard C-06] --> useDialog : клик →\n?meeting=<id>
+[UpcomingList] --> [DeadlineIndicator C-07]
+MeetingsGrid --> [Skeleton C-11]
+MeetingsGrid --> [StateBanner C-13\nempty/error/offline]
+
+' composition — S2
+WatchlistPage --> [TickerAutocomplete C-04]
+WatchlistPage --> [StatusFilterChips C-10]
+WatchlistPage --> [WatchRow C-09]
+[TickerAutocomplete C-04] --> [DropdownList C-14\nвнутренний]
+[WatchRow C-09] --> [TickerChip C-05]
+[WatchRow C-09] --> [DeadlineIndicator C-07]
+[WatchRow C-09] --> [AppButton C-03]
+[WatchRow C-09] --> useSnackbar : снятие →\nundo (POST /watchlist)
+
+note bottom of http
+  Направление зависимостей — строго сверху вниз.
+  pages/components не импортируют api/ напрямую.
+  Отдельной страницы собрания нет — модал C-08 внутри S1.
+  Отсечки без собрания (meeting_id IS NULL) — через epRecordDates.
+  Бейдж hot/critical (Р-9) — computed по useWatchlist().items,
+  без дополнительных запросов; скрыт при 0 и до загрузки списка.
+end note
+
+@enduml

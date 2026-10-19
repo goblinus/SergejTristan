@@ -1,0 +1,34 @@
+@startuml
+title Дивидендный календарь — контекстная диаграмма (MVP)
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+actor "Пользователь\n(владелец)" as user
+
+rectangle "Дивидендный календарь" as system {
+  [Фронтенд\nSPA, Vue.js 3\nComposition API] as frontend
+  [Бэкенд\nREST API, Python\nSQLAlchemy + Pydantic] as backend
+  database "База данных\n(СУБД — ADR-0001)" as db
+  [Скрипты сбора\nPython (uv)\nзапуск вручную / по расписанию] as collectors
+}
+
+[Внешний источник\nmoex.com\n(MOEX ISS)] as moex
+[Внешний источник\ndisclosure.ru] as disclosure
+[Прочие источники\ne-disclosure.ru, сайты эмитентов] as other
+
+user --> frontend : HTTPS (браузер)\nпросмотр календаря,\nуправление сторожками
+frontend --> backend : HTTP/JSON (REST)\nчтение данных, CRUD сторожков
+backend --> db : SQLAlchemy\nчтение доменных данных,\nзапись сторожков
+collectors --> db : upsert\nединственный писатель\nдоменных данных
+collectors --> moex : сбор сырых данных
+collectors --> disclosure : сбор сырых данных
+collectors --> other : сбор сырых данных (резерв)
+
+note right of collectors
+  Офлайн-процесс: нормализация
+  и идемпотентная запись.
+  Бэкенд к источникам не обращается.
+end note
+
+@enduml

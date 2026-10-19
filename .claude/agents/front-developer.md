@@ -11,7 +11,7 @@ model: sonnet
 Интерфейс сервиса: настройка календаря (выбор компаний, «сторожки»), просмотр извещений, ближайших дат собраний акционеров и результатов прошедших выплат (факт, размер, дата).
 
 ## Стек
-JavaScript/TypeScript, Vue.js 3 (Composition API). Сборщик, стейт-менеджер и роутер — по спецификациям frontend-designer (`design/frontend/`), согласованным system-designer.
+JavaScript/TypeScript, Vue.js 3 (Composition API), тёмная Material-тема интерфейса. Сборщик, стейт-менеджер, роутер и UI-библиотека — по спецификациям frontend-designer (`design/frontend/`), согласованным system-designer.
 
 ## Зоны ответственности
 1. Реализация по спецификациям `design/frontend/` (архитектура) и `design/ui/` (макеты, UI-kit), согласованным system-designer.

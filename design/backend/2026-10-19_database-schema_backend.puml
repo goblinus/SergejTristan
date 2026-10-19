@@ -1,0 +1,66 @@
+@startuml
+title Физическая схема БД MVP «Дивидендный календарь»
+
+hide circle
+skinparam linetype ortho
+
+entity "tickers" as tickers {
+  * **id** : INTEGER <<PK>>
+  --
+  * ticker : VARCHAR(16) <<UQ>> — SECID MOEX
+  * short_name : VARCHAR(255)
+  full_name : VARCHAR(512)
+  isin : VARCHAR(12)
+  board : VARCHAR(16)
+  lot_size : INTEGER
+  * is_active : BOOLEAN = TRUE
+  * source_url : TEXT
+  * fetched_at : DATETIME
+}
+
+entity "shareholder_meetings" as meetings {
+  * **id** : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK>>
+  * meeting_date : DATE <<idx>>
+  * meeting_type : VARCHAR(16) — annual | extraordinary
+  * dividend_question : BOOLEAN = TRUE
+  description : TEXT
+  * source_url : TEXT
+  * fetched_at : DATETIME
+  --
+  UQ(ticker_id, meeting_date, meeting_type)
+}
+
+entity "record_dates" as record_dates {
+  * **id** : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK>> <<idx(ticker_id, kind)>>
+  meeting_id : INTEGER <<FK, NULL>>
+  * record_date : DATE <<idx>>
+  * kind : VARCHAR(32) — dividend_payment | meeting_participation
+  * source_url : TEXT
+  * fetched_at : DATETIME
+  --
+  UQ(ticker_id, record_date, kind)
+}
+
+entity "watchlist_items" as watchlist {
+  * **id** : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK, UQ>>
+  * threshold_days : INTEGER = 7
+  * created_at : DATETIME
+}
+
+tickers ||--o{ meetings : "ticker_id"
+tickers ||--o{ record_dates : "ticker_id"
+meetings |o--o{ record_dates : "meeting_id\n(опционально)"
+tickers ||--o| watchlist : "ticker_id"
+
+note bottom of watchlist
+Вычисляемые поля сторожка
+(days_to_cutoff, status)
+в таблице НЕ хранятся
+end note
+@enduml

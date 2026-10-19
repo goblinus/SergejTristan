@@ -1,0 +1,69 @@
+@startuml
+title Дивидендный календарь — контейнеры и потоки данных (актуализировано: ревью раунд 2)
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+actor "Пользователь" as user
+
+rectangle "Frontend SPA" as fe {
+  [Vue.js 3 (Composition API)\nTypeScript\nтёмная Material-тема] as spa
+  [Отображение статуса\n(готовый {status, days_to_cutoff}\nиз API, маппинг в токены)] as calc
+}
+
+rectangle "Backend" as be {
+  [Backend API\nFastAPI (ADR-0002)\nREST, OpenAPI] as api
+  [SQLAlchemy + Pydantic\nORM / DTO\nрасчёт статуса сторожка\nна чтении (Р-3)] as orm
+}
+
+database "Database\n(ADR-0001)\nSQLite" as db {
+  [tickers] as tbl_t
+  [shareholder_meetings] as tbl_m
+  [record_dates] as tbl_c
+  [watchlist_items] as tbl_w
+}
+
+rectangle "Data collectors (офлайн)" as dc {
+  [Fetch: moex.com, disclosure.ru] as fetch
+  [Normalize: parse -> каноническая модель] as norm
+  [Upsert: идемпотентная запись\n+ source_url, fetched_at] as upsert
+}
+
+[moex.com (MOEX ISS)] as moex
+[disclosure.ru / e-disclosure] as disc
+
+' Поток 1: обновление данных
+moex --> fetch : поток 1: сырые данные
+disc --> fetch : поток 1: сырые данные
+fetch --> norm
+norm --> upsert
+upsert --> tbl_t : upsert
+upsert --> tbl_m : upsert
+upsert --> tbl_c : upsert
+
+' Поток 2: чтение доменных данных
+user --> spa : поток 2/3: HTTP(S)
+spa --> api : поток 2: GET /api/v1/tickers, /meetings, /record-dates
+spa --> api : поток 3: GET/POST/DELETE /api/v1/watchlist
+api --> orm
+orm --> db : чтение (домен)\nчтение+запись (сторожки)
+
+' Поток 3: расчёт статуса — на сервере (Р-3)
+orm --> api : status / days_to_cutoff\n(каноническая шкала Р-4)
+api --> spa : готовый status
+spa --> calc : status, days_to_cutoff
+calc --> spa : визуальная индикация\n(DeadlineIndicator)
+
+note bottom of upsert
+  Единственный писатель
+  тикеров/собраний/дат отсечки.
+  API эти таблицы не пишет.
+end note
+
+note bottom of calc
+  Статус сторожка вычисляется в API
+  на чтении от даты сервера (Р-3).
+  На клиенте пороги не пересчитываются.
+end note
+
+@enduml

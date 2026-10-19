@@ -1,0 +1,81 @@
+@startuml
+title Дивидендный календарь — каноническая ER-модель (MVP, актуализировано: ревью раунд 2)
+
+' Скрыть стереотипы C/E для чистоты
+hide circle
+skinparam linetype ortho
+
+entity "tickers\n(Тикер)" as tickers {
+  * id : INTEGER <<PK>>
+  --
+  * ticker : VARCHAR(16) <<UQ>> — SECID MOEX
+  * short_name : VARCHAR(255)
+  full_name : VARCHAR(512)
+  isin : VARCHAR(12)
+  board : VARCHAR(16)
+  lot_size : INTEGER
+  * is_active : BOOLEAN = TRUE
+  * source_url : TEXT
+  * fetched_at : TIMESTAMP UTC
+}
+
+entity "shareholder_meetings\n(Собрание акционеров)" as meetings {
+  * id : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK>>
+  * meeting_date : DATE
+  * meeting_type : VARCHAR(16) — annual | extraordinary
+  * dividend_question : BOOLEAN = TRUE
+  description : TEXT
+  * source_url : TEXT
+  * fetched_at : TIMESTAMP UTC
+  --
+  UQ (ticker_id, meeting_date, meeting_type)
+}
+
+entity "record_dates\n(Дата отсечки / закрытия реестра)" as rdates {
+  * id : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK>>
+  meeting_id : INTEGER <<FK, NULL>>
+  * record_date : DATE
+  * kind : VARCHAR(32) — dividend_payment | meeting_participation
+  * source_url : TEXT
+  * fetched_at : TIMESTAMP UTC
+  --
+  UQ (ticker_id, record_date, kind)
+}
+
+entity "watchlist_items\n(Сторожок)" as watchlist {
+  * id : INTEGER <<PK>>
+  --
+  * ticker_id : INTEGER <<FK>> <<UQ>>
+  * threshold_days : INTEGER 1..365 = 7
+  * created_at : TIMESTAMP UTC
+  --
+  целевая дата отсечки — не хранится,
+  вычисляется: ближайшая будущая record_date
+  (kind = dividend_payment)
+}
+
+tickers ||--o{ meetings : "1 : N"
+tickers ||--o{ rdates : "1 : N"
+meetings ||--o{ rdates : "1 : 0..N (опционально,\nON DELETE SET NULL)"
+tickers ||--o| watchlist : "1 : 0..1 (один сторожок на тикер)"
+
+note right of rdates
+  Доменные даты — DATE без времени,
+  семантика Москвы (UTC+3), ISO 8601.
+  Технические метки — TIMESTAMP в UTC.
+  Отсечка без собрания (meeting_id IS NULL)
+  — допустима и показывается в календаре.
+end note
+
+note bottom of watchlist
+  Статус — каноническая шкала
+  no_date/far/near/hot/critical/past (Р-4),
+  вычисляется в API на чтении,
+  в БД не хранится (Р-3).
+end note
+
+@enduml

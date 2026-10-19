@@ -4,7 +4,7 @@
 
 ## Стек
 
-JavaScript/TypeScript, Vue.js 3 (Composition API). Сборщик, стейт-менеджер, роутер — по спецификациям `design/frontend/`, согласованным system-designer (см. ADR в `design/system/adr/`).
+JavaScript/TypeScript, Vue.js 3 (Composition API), тёмная Material-тема интерфейса. Сборщик, стейт-менеджер, роутер и UI-библиотека — по спецификациям `design/frontend/`, согласованным system-designer (см. ADR в `design/system/adr/`).
 
 ## Источники истины
 

@@ -1,0 +1,56 @@
+@startuml
+title Пайплайн сбора данных (Data collectors)
+
+actor "Планировщик ОС\n(cron / Task Scheduler)" as cron
+participant "CLI-скрипт\n(fetch_*.py)" as cli
+participant "sources\n(httpx + retry)" as src
+participant "parsers" as parse
+participant "normalize\n(канонические DTO)" as norm
+participant "loader\n(upsert по бизнес-ключу)" as load
+database "Database" as db
+participant "moex.com ISS" as moex
+participant "disclosure.ru /\ne-disclosure" as disc
+
+cron -> cli : запуск по расписанию\n(--dry-run / --verbose)
+activate cli
+
+cli -> src : fetch()
+src -> moex : GET .../securities.json
+moex --> src : JSON
+src -> disc : GET лента/страница эмитента
+disc --> src : HTML
+alt сетевая ошибка / HTTP 5xx / 429
+  src -> src : retry x3 (экспоненциальная задержка)
+  alt ретраи исчерпаны
+    src --> cli : SourceUnavailable -> exit 1/2
+  end
+end
+src --> cli : сырой ответ (JSON/HTML)
+
+cli -> parse : parse(сырой ответ)
+parse --> cli : разобранные факты (dict)
+note over parse
+Ошибка формата записи -> WARNING,\nзапись отбрасывается, прогон продолжается
+end note
+
+cli -> norm : normalize(факты)
+norm --> cli : NormalizedTicker / NormalizedMeeting /\nNormalizedRecordDate (Pydantic DTO)
+note over norm
+Регистр тикера, типы собраний,\nвалидация дат, дедуп, связывание\nrecord_date <-> meeting
+end note
+
+alt --dry-run
+  cli -> cli : только статистика в лог
+else обычный запуск
+  cli -> load : load(DTO)
+  load -> db : upsert по бизнес-ключу\n+ source_url, fetched_at
+  db --> load : inserted/updated
+  note over load, db
+    Существующая запись обновляется,\nдублей нет; идемпотентно.\nТикеры, исчезнувшие из листинга ->\nis_active = FALSE (только при успешном прогоне)
+  end note
+  load --> cli : итоговая статистика
+end
+
+cli --> cron : код возврата\n0=успех, 1=фатально, 2=частичный сбой
+deactivate cli
+@enduml
