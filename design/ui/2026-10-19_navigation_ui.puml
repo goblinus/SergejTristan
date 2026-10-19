@@ -1,0 +1,56 @@
+@startuml
+!theme plain
+skinparam state {
+  BackgroundColor #1D1B20
+  BorderColor #938F99
+  FontColor #E6E1E5
+  ArrowColor #CAC4D0
+}
+title Навигация MVP «Дивидендный календарь»
+
+[*] --> Calendar : старт приложения (роут / -> /calendar)
+
+state "S1. Календарь собраний" as Calendar {
+  state "Список/сетка собраний" as CalList
+  state "Фильтры (месяц, прошедшие)" as CalFilters
+  [*] --> CalList
+  CalList --> CalFilters : смена фильтров
+  CalFilters --> CalList : применить
+}
+
+state "S1.1. Детали собрания (modal/sheet)" as MeetingDetails
+
+state "S2. Страница пользователя" as Profile {
+  state "Поиск тикера (autocomplete)" as Search
+  state "Список сторожков" as Watchlist
+  state "Подтверждение снятия" as ConfirmRemove
+  [*] --> Search
+  Search --> Watchlist : выбран тикер — добавить сторожок
+  Watchlist --> ConfirmRemove : клик «Снять» при горячем сроке
+  ConfirmRemove --> Watchlist : подтверждено/отменено
+  Watchlist --> Watchlist : undo из snackbar
+}
+
+Calendar --> MeetingDetails : клик по карточке (?meeting=id)
+MeetingDetails --> Calendar : закрыть (Esc/клик вне/крестик)
+
+Calendar --> Profile : вкладка «Мои сторожки» / CTA «Отслеживать»
+Profile --> Calendar : вкладка «Календарь» / клик по тикеру сторожка
+
+state "Глобальные состояния" as Global <<choice>>
+Calendar -down-> Global : ошибка API / офлайн / загрузка
+Profile  -down-> Global : ошибка API / офлайн / загрузка
+Global --> Calendar : восстановление
+Global --> Profile  : восстановление
+
+note right of MeetingDetails
+  Не отдельный экран,
+  modal/bottom-sheet внутри календаря.
+  deep-link: /calendar?meeting=<id>
+end note
+
+note right of Profile
+  /me?ticker=<T> — предзаполнение поиска
+  при переходе из календаря
+end note
+@enduml

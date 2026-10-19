@@ -1,0 +1,83 @@
+@startuml
+title Слои бэкенда MVP «Дивидендный календарь»
+
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BackgroundColor #FAFAFA
+  BorderColor #555
+}
+
+package "Backend API (FastAPI, uvicorn)" {
+  package "api (роутеры)" as api {
+    [api/tickers]
+    [api/meetings]
+    [api/record_dates]
+    [api/watchlist]
+  }
+  package "service (бизнес-логика)" as svc {
+    [services/tickers]
+    [services/calendar]
+    [services/watchlist\n(+ расчёт статуса)]
+  }
+  package "repository (SQLAlchemy)" as repo_r {
+    [репозитории чтения]
+    [репозиторий сторожка\n(insert/delete)]
+  }
+  package "models (ORM)" as models
+  package "schemas (Pydantic DTO)" as schemas
+  package "core (config, db, logging)" as core
+}
+
+package "Data collectors (CLI-скрипты)" {
+  package "scripts (CLI)" as cli {
+    [fetch_tickers_moex]
+    [fetch_meetings_disclosure]
+  }
+  package "ingestion" as ing {
+    [sources\n(httpx: moex ISS, disclosure)]
+    [parsers]
+    [normalize\n(канонические DTO)]
+    [loader]
+  }
+  package "repository (upsert)" as repo_w {
+    [upsert по бизнес-ключам]
+  }
+}
+
+database "Database\n(ADR-0001)" as db
+actor "Пользователь" as user
+actor "Планировщик ОС\n(cron / Task Scheduler)" as cron
+cloud "moex.com ISS\nAPI" as moex
+cloud "disclosure.ru /\ne-disclosure" as disc
+
+user --> api : HTTP/JSON\nGET /api/v1/...
+api --> schemas : валидация запроса\nсериализация ответа
+api --> svc
+svc --> repo_r
+repo_r --> models
+models --> db
+core ..> api : Settings\nget_session
+core ..> cli
+
+cron --> cli : запуск по расписанию
+cli --> ing
+[sources\n(httpx: moex ISS, disclosure)] ..> moex
+[sources\n(httpx: moex ISS, disclosure)] ..> disc
+[parsers] --> [normalize\n(канонические DTO)]
+[normalize\n(канонические DTO)] --> [loader]
+[loader] --> repo_w
+repo_w --> models
+
+note right of svc
+Вычисляемый статус сторожка
+(no_date/far/near/hot/critical/past)
+считается на чтении,
+в БД не хранится
+end note
+
+note bottom of models
+Единственный писатель
+доменных данных — loader.
+API пишет только watchlist.
+end note
+@enduml
