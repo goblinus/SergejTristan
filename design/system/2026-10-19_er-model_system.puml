@@ -14,6 +14,11 @@ entity "tickers\n(Тикер)" as tickers {
   isin : VARCHAR(12)
   board : VARCHAR(16)
   lot_size : INTEGER
+  logo_url : VARCHAR(512)
+  last_price : NUMERIC(18,4)
+  price_updated_at : TIMESTAMP UTC
+  dsi : SMALLINT 0..100
+  dsi_updated_at : TIMESTAMP UTC
   * is_active : BOOLEAN = TRUE
   * source_url : TEXT
   * fetched_at : TIMESTAMP UTC
@@ -26,6 +31,8 @@ entity "shareholder_meetings\n(Собрание акционеров)" as meetin
   * meeting_date : DATE
   * meeting_type : VARCHAR(16) — annual | extraordinary
   * dividend_question : BOOLEAN = TRUE
+  dividend_period : VARCHAR(16) — year | half_year | quarter
+  dividend_per_share : NUMERIC(12,4)
   description : TEXT
   * source_url : TEXT
   * fetched_at : TIMESTAMP UTC
@@ -76,6 +83,13 @@ note bottom of watchlist
   no_date/far/near/hot/critical/past (Р-4),
   вычисляется в API на чтении,
   в БД не хранится (Р-3).
+end note
+
+note bottom of meetings
+  Дивидендные метрики (ADR-0005):
+  доходность не хранится — DPS / last_price;
+  DSI — снапшот в tickers.dsi (0..100),
+  пересчитывается скриптом сбора.
 end note
 
 @enduml

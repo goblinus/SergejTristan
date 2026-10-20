@@ -1,7 +1,8 @@
 # Типы и API-клиент фронтенда (MVP)
 
 Дата: 2026-10-19. Статус: проект, раунд 3 (доработка по ревью system-designer
-раунда 2; решения Р-1, Р-4, Р-5, Р-6, Р-8, Р-10).
+раунда 2; решения Р-1, Р-4, Р-5, Р-6, Р-8, Р-10). Обновлено 2026-10-20:
+дивидендные метрики добавлены по ADR-0005 (Р-5 пересмотрен в этой части).
 
 Закрываемый вопрос: **типизированная стыковка с бэкендом без рассинхрона** —
 TypeScript-интерфейсы DTO, зеркалирующие опубликованный API-контракт бэкенда
@@ -17,8 +18,9 @@ HTTP-клиент, единая обработка ошибок и состоя�
 - Поля трассировки `fetched_at` (в `Ticker`/`Meeting`/`RecordDate`) и
   `source_url` (в `Meeting`) добавлены в API для индикатора свежести и
   ссылки на источник (Р-6).
-- Суммы дивидендов и `last_trading_day` (учёт T+1) — вне MVP (Р-5), в типах
-  отсутствуют и у бэкенда не запрашиваются.
+- Дивидендные метрики (период выплат, сумма на акцию, доходность, DSI) добавлены
+  в MVP по ADR-0005 и входят в DTO; `last_trading_day` (учёт T+1) по-прежнему
+  вне MVP (Р-5).
 
 ## 1. Модель данных (`src/types/`)
 
@@ -53,6 +55,8 @@ export interface Ticker {
   isin: string | null;
   board: string | null;
   lot_size: number | null;
+  /** URL/путь к логотипу эмитента; null — нет (UI показывает монограмму) */
+  logo_url: string | null;
   is_active: boolean;
   /** Метка времени последнего обновления записи сборщиком (Р-6) */
   fetched_at: string; // ISO datetime UTC
@@ -97,6 +101,8 @@ export interface Meeting {
   id: number;
   ticker: string;
   short_name: string;
+  /** Логотип эмитента; null — нет (UI показывает монограмму) */
+  logo_url: string | null;
   /** Дата собрания (день без времени) */
   meeting_date: string; // YYYY-MM-DD
   meeting_type: MeetingType;
@@ -104,13 +110,18 @@ export interface Meeting {
   description: string | null;
   /** Связанная отсечка dividend_payment; null — отсечка ещё не назначена */
   record_date: MeetingRecordDate | null;
+  /** Дивидендные условия собрания; null — не раскрыты */
+  dividend: DividendTerms | null;
+  /** DSI эмитента, целое 0..100; null — недостаточно истории */
+  dsi: number | null;
   /** Ссылка на первоисточник (раскрытие эмитента); null — неизвестна (Р-6) */
   source_url: string | null;
   fetched_at: string; // ISO datetime UTC (Р-6)
 }
 ```
 
-Полей с суммами дивидендов в MVP нет (Р-5).
+Доходность (`yield_percent`) вычисляется на бэкенде к последней цене акции и
+приходит готовой; фронтенд её не пересчитывает.
 
 ### 1.5. `WatchlistItem` — сторожок
 
@@ -122,16 +133,24 @@ export type WatchStatus = 'no_date' | 'far' | 'near' | 'hot' | 'critical' | 'pas
 export interface WatchlistItem {
   ticker: string;
   short_name: string;
+  /** Логотип эмитента; null — нет */
+  logo_url: string | null;
   /** Персональный порог зоны hot, дней (1..365, по умолчанию 7) */
   threshold_days: number;
   /** Когда пользователь поставил сторожок */
   created_at: string; // ISO datetime UTC
   /** Ближайшая (сегодня или позже) отсечка dividend_payment; null — нет */
   next_record_date: string | null; // YYYY-MM-DD
+  /** Дата собрания, связанного с next_record_date; null — связь не установлена */
+  next_meeting_date: string | null; // YYYY-MM-DD
   /** Дней от текущей даты сервера до next_record_date; null вместе с ним */
   days_to_cutoff: number | null;
   /** Статус по шкале Р-4; вычисляется на чтении, хранения в БД нет */
   status: WatchStatus;
+  /** Дивидендные условия ближайшей отсечки; null — нет данных */
+  next_dividend: DividendTerms | null;
+  /** DSI эмитента, целое 0..100; null — недостаточно истории */
+  dsi: number | null;
 }
 ```
 
@@ -151,6 +170,27 @@ export interface WatchlistCreate {
   threshold_days?: number; // 1..365
 }
 ```
+
+### 1.7. Дивидендные метрики `DividendTerms`
+
+```ts
+// types/dividend.ts
+export type DividendPeriod = 'year' | 'half_year' | 'quarter';
+
+/** Дивидендные условия одной выплаты (собрания / ближайшей отсечки сторожка) */
+export interface DividendTerms {
+  /** Период, за который выплачиваются дивиденды; null — не раскрыт */
+  period: DividendPeriod | null;
+  /** Сумма на одну акцию, ₽; null — не раскрыта */
+  amount_per_share: number | null;
+  /** Дивидендная доходность к последней цене, %; null — нет цены/суммы */
+  yield_percent: number | null;
+}
+```
+
+`yield_percent` и `dsi` — серверные вычисляемые значения: клиент показывает их
+как есть и не пересчитывает. Форматирование (валюта, проценты, «—» для `null`)
+— в [2026-10-20_dividend-metrics_frontend.md](./2026-10-20_dividend-metrics_frontend.md).
 
 ## 2. API-контракт
 
@@ -188,6 +228,11 @@ Base path: `/api/v1`. Аутентификации нет (однопользо�
   передан). Этим пользуется undo в Snackbar после снятия сторожка (замечание
   frontend-4): «Отменить» = повторный `POST /watchlist` с тем же телом.
 - `DELETE /watchlist/{ticker}` — по коду тикера, не по id записи.
+- `Meeting.dividend`, `Meeting.dsi`, `WatchlistItem.next_dividend`,
+  `WatchlistItem.dsi` — поля ADR-0005. `dividend`/`next_dividend` равны
+  `null`, если условия не раскрыты; внутри объекта отдельные поля тоже
+  допускают `null`. `yield_percent` считается бэкендом, `dsi` — снапшот
+  эмитента.
 
 ## 3. HTTP-клиент (`src/api/http.ts`)
 
@@ -287,7 +332,8 @@ StateBanner empty (пустой список — не ошибка).
 4. Поля, которые фронт не использует, в DTO не включаются — меньше
    поверхность рассинхрона (все поля текущих DTO используются в макетах
    ui: `board`/`lot_size`/`full_name`/`isin` нужны автодополнению;
-   `fetched_at` — индикатору свежести; `source_url` — модалу деталей).
+   `fetched_at` — индикатору свежести; `source_url` — модалу деталей;
+   `dividend`/`dsi` — блоку метрик C-15 и бейджу C-16).
 
 ## 7. Открытые вопросы
 

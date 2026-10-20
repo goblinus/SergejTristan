@@ -21,7 +21,7 @@
 | Слой | Пакет | Ответственность |
 |---|---|---|
 | API | `app/api/` | FastAPI-роутеры: разбор запроса, валидация Pydantic, вызов сервиса, формирование ответа и HTTP-кодов ошибок. Без бизнес-логики и SQL. |
-| Service | `app/services/` | Бизнес-логика: сборка DTO, вычисление статуса сторожка (см. [правила расчёта статуса](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md)), пагинация, проверки существования тикера. |
+| Service | `app/services/` | Бизнес-логика: сборка DTO, вычисление статуса сторожка (см. [правила расчёта статуса](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md)), расчёт дивидендной доходности и отдача DSI (см. [дивидендные метрики](./2026-10-20_dividend-metrics_backend.md)), пагинация, проверки существования тикера. |
 | Repository | `app/repositories/` | Доступ к данным через SQLAlchemy: запросы чтения для API, upsert для скриптов. Единственное место SQL/ORM-запросов. |
 | Models | `app/models/` | Декларативные ORM-модели SQLAlchemy 2.x по [схеме БД](./2026-10-19_схема-бд_backend.md). |
 | Schemas | `app/schemas/` | Pydantic-модели запросов/ответов по [API-контракту](./2026-10-19_api-контракт_backend.md). |
@@ -48,7 +48,8 @@ backend/
 │   ├── services/
 │   │   ├── tickers.py
 │   │   ├── calendar.py       # собрания + даты отсечки
-│   │   └── watchlist.py      # CRUD + расчёт статуса сторожка
+│   │   ├── dividends.py      # доходность на чтении, DSI в DTO
+│   │   └── watchlist.py      # CRUD + расчёт статуса и next_meeting_date
 │   ├── repositories/
 │   │   ├── tickers.py
 │   │   ├── meetings.py
@@ -64,10 +65,13 @@ backend/
 │       ├── common.py         # Page[...], ошибка
 │       ├── ticker.py
 │       ├── meeting.py
+│       ├── dividend.py       # DividendTerms, DSI-поля
 │       ├── record_date.py
 │       └── watchlist.py
 ├── scripts/                  # офлайн-сбор данных, см. спецификацию скриптов
 │   ├── fetch_tickers_moex.py
+│   ├── fetch_dividends_moex.py
+│   ├── sync_logos.py
 │   ├── fetch_meetings_disclosure.py
 │   └── ingestion/
 │       ├── sources/          # адаптеры источников (moex_iss, disclosure)
