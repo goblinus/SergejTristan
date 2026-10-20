@@ -13,6 +13,11 @@ entity "tickers" as tickers {
   isin : VARCHAR(12)
   board : VARCHAR(16)
   lot_size : INTEGER
+  logo_url : VARCHAR(512)
+  last_price : NUMERIC(18,4) — для расчёта доходности
+  price_updated_at : DATETIME
+  dsi : SMALLINT 0..100 — снапшот ADR-0005
+  dsi_updated_at : DATETIME
   * is_active : BOOLEAN = TRUE
   * source_url : TEXT
   * fetched_at : DATETIME
@@ -25,6 +30,8 @@ entity "shareholder_meetings" as meetings {
   * meeting_date : DATE <<idx>>
   * meeting_type : VARCHAR(16) — annual | extraordinary
   * dividend_question : BOOLEAN = TRUE
+  dividend_period : VARCHAR(16) — year | half_year | quarter
+  dividend_per_share : NUMERIC(12,4)
   description : TEXT
   * source_url : TEXT
   * fetched_at : DATETIME

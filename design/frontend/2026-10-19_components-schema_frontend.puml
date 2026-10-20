@@ -10,6 +10,7 @@ package "types/ (модель данных, snake_case)" as types {
   [Meeting DTO]
   [RecordDate DTO]
   [WatchlistItem DTO]
+  [DividendTerms DTO\nperiod, amount_per_share, yield_percent, dsi]
   [Page<T> конверт]
 }
 
@@ -39,6 +40,9 @@ package "components/ (UI)" as components {
     [AppButton C-03]
     [TickerChip C-05]
     [DeadlineIndicator C-07]
+    [CompanyFacts C-15\n5 фактов: период, сумма, доходность, даты]
+    [DsiBadge C-16\nDSI + подсказка]
+    [CompanyIdentity C-17\nлоготип + тикер + имя]
     [Skeleton C-11]
     [Snackbar C-12]
     [StateBanner C-13\nempty/error/offline]
@@ -109,9 +113,15 @@ CalendarPage --> [MonthFilter]
 CalendarPage --> MeetingsGrid
 CalendarPage --> [UpcomingList]
 CalendarPage --> [MeetingDetailsDialog C-08\nмодал / bottom-sheet]
+[MeetingDetailsDialog C-08\nмодал / bottom-sheet] --> [CompanyIdentity C-17]
+[MeetingDetailsDialog C-08\nмодал / bottom-sheet] --> [CompanyFacts C-15]
+[MeetingDetailsDialog C-08\nмодал / bottom-sheet] --> [DsiBadge C-16]
 MeetingsGrid --> [MeetingCard C-06]
 [MeetingCard C-06] --> [TickerChip C-05]
+[MeetingCard C-06] --> [CompanyIdentity C-17]
+[MeetingCard C-06] --> [CompanyFacts C-15]
 [MeetingCard C-06] --> [DeadlineIndicator C-07]
+[MeetingCard C-06] --> [DsiBadge C-16]
 [MeetingCard C-06] --> useDialog : клик →\n?meeting=<id>
 [UpcomingList] --> [DeadlineIndicator C-07]
 MeetingsGrid --> [Skeleton C-11]
@@ -123,7 +133,10 @@ WatchlistPage --> [StatusFilterChips C-10]
 WatchlistPage --> [WatchRow C-09]
 [TickerAutocomplete C-04] --> [DropdownList C-14\nвнутренний]
 [WatchRow C-09] --> [TickerChip C-05]
+[WatchRow C-09] --> [CompanyIdentity C-17]
+[WatchRow C-09] --> [CompanyFacts C-15]
 [WatchRow C-09] --> [DeadlineIndicator C-07]
+[WatchRow C-09] --> [DsiBadge C-16]
 [WatchRow C-09] --> [AppButton C-03]
 [WatchRow C-09] --> useSnackbar : снятие →\nundo (POST /watchlist)
 
@@ -134,6 +147,9 @@ note bottom of http
   Отсечки без собрания (meeting_id IS NULL) — через epRecordDates.
   Бейдж hot/critical (Р-9) — computed по useWatchlist().items,
   без дополнительных запросов; скрыт при 0 и до загрузки списка.
+  Дивидендные метрики и логотип (ADR-0005/0006): CompanyIdentity,
+  CompanyFacts и DsiBadge — только отображение готовых значений из
+  Meeting/WatchlistItem; без пересчёта. Fallback логотипа — монограмма.
 end note
 
 @enduml

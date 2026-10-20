@@ -80,6 +80,7 @@ frontend/
    ├─ components/
    │  ├─ ui/                   (атомы ui-кита C-03..C-14)
    │  ├─ layout/               (AppHeader C-01, BottomNav C-02)
+   │  ├─ company/              (CompanyIdentity C-17, CompanyFacts C-15)
    │  ├─ calendar/
    │  └─ watchlist/
    ├─ pages/

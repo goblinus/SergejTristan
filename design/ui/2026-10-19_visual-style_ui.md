@@ -97,6 +97,19 @@
 | selected | фон `--primary-container`, текст `--on-primary-container` |
 | disabled | прозрачность текста/иконок 38%, фон `--on-surface` 12%; без hover/focus эффектов |
 
+## 5.1. Подсказка DSI и бейдж метрики
+
+- Бейдж DSI: подпись `DSI` — 12/16 `--on-surface-muted`; значение — 12/16, 600, `--on-surface`; иконка `i` — круг 16×16, граница `--outline`, цвет `--on-surface-muted`.
+- Подсказка: контейнер `--surface-4`, граница 1px `--outline`, радиус 8px, тень `0 8px 24px rgba(0,0,0,.45)`, padding 10px 12px, ширина 250px, текст 12/16 `--on-surface`, выравнивание по правому краю иконки.
+- Появление: 150 мс, opacity 0→1 + сдвиг 4px; скрытие — при уходе курсора/фокуса.
+- Иконка — единственный элемент карточки, не открывающий детали собрания; клик по ней не всплывает до карточки.
+
+## 5.2. Логотип и строка фактов
+
+- Логотип: 32×32 (карточка, строка), 36×36 (модал), радиус 8–9 px, `object-fit: contain`, фон-заглушка `--surface-3`. Fallback — монограмма: первая буква тикера, 13/700, `--on-surface-variant`.
+- Строка фактов: grid из 5 колонок, gap 8 px; подписи 10/12 `--on-surface-muted`, значения 12–13/18 `--on-surface`, `tabular-nums`.
+- Мобильная ширина: те же 5 колонок, подписи 9.5/11, значения 11.5 px; перенос дат не допускается.
+
 ## 6. Иконки
 
 Набор: **Material Symbols (Rounded)**. Размеры: 20px в кнопках/чипах, 24px в AppBar и навигации. Используемые в MVP: `calendar_month`, `event`, `search`, `add`, `close`, `delete`, `notifications`/`notifications_active` (сторожок), `warning`, `error`, `check_circle`, `schedule`, `refresh`, `info`.
