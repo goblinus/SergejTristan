@@ -1,0 +1,30 @@
+{
+  "securities": {
+    "columns": [
+      "SECID",
+      "BOARDID",
+      "SHORTNAME",
+      "PREVPRICE",
+      "LOTSIZE",
+      "SECNAME",
+      "ISIN",
+      "LATNAME"
+    ],
+    "data": [
+      ["sber", "TQBR", "Сбербанк", 300.0, 10, "Сбербанк России ПАО ао", "RU0009029540", "Sberbank"],
+      ["GAZP", "TQBR", "Газпром", 130.0, 10, "Газпром ПАО ао", "RU0007661625", "Gazprom"],
+      ["MTLR", "TQBR", "Металлург", null, 1, "Металлург ПАО ао", "RU0009084396", "Metallurg"],
+      ["AFLT", "SMAL", "Аэрофлот", 60.0, 1, "Аэрофлот ПАО ао", "RU0009062285", "Aeroflot"],
+      ["BADROW", "TQBR", "   ", 10.0, 1, "Без имени", "RU0000000000", "NoName"]
+    ]
+  },
+  "marketdata": {
+    "columns": ["SECID", "BOARDID", "LAST", "MARKETPRICE"],
+    "data": [
+      ["SBER", "TQBR", 305.5, 304.0],
+      ["GAZP", "TQBR", null, 128.4],
+      ["MTLR", "TQBR", null, null],
+      ["AFLT", "SMAL", 61.0, 60.5]
+    ]
+  }
+}
