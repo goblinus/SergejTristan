@@ -26,3 +26,7 @@ def setup_logging(level: int | str = logging.INFO) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(level)
+
+    # httpx/httpcore логируют каждый запрос на INFO; для скриптов это шум.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)

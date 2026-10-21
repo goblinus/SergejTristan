@@ -1,8 +1,8 @@
 # Бэкенд «Дивидендного календаря»
 
 API и офлайн-сбор данных сервиса отслеживания дивидендных событий Московской биржи.
-Текущее состояние — каркас: структура слоёв, модели, схемы и контракт эндпоинтов;
-репозитории и скрипты сбора пока возвращают заглушки.
+Реализованы календарь собраний (`GET /meetings`, `GET /meetings/{id}`) и сбор
+собраний/дат отсечки из disclosure; остальные заглушки перечислены ниже.
 
 ## Стек
 
@@ -10,7 +10,7 @@ API и офлайн-сбор данных сервиса отслеживани�
 - FastAPI + uvicorn (ADR-0002);
 - SQLAlchemy 2.x (синхронный), SQLite по умолчанию (ADR-0001);
 - Pydantic v2 / pydantic-settings для DTO и конфигурации;
-- httpx, beautifulsoup4, lxml — для скриптов сбора (пока не используются).
+- httpx, beautifulsoup4, lxml — загрузка и разбор HTML источников раскрытия.
 
 ## Структура
 
@@ -21,15 +21,15 @@ backend/
 │   ├── core/              # Settings, engine/Session, логирование
 │   ├── api/               # роутеры: tickers, meetings, record-dates, watchlist
 │   ├── services/          # бизнес-логика: статусы, доходность, DSI, сборка DTO
-│   ├── repositories/      # доступ к данным (сейчас — заглушки)
+│   ├── repositories/      # доступ к данным: чтение API и upsert для скриптов
 │   ├── models/            # ORM-модели SQLAlchemy 2.x
 │   └── schemas/           # Pydantic-схемы API
 ├── alembic.ini            # конфигурация Alembic
 ├── migrations/            # Alembic: env.py, script.py.mako, versions/001_initial.py
-├── scripts/               # CLI-каркасы сбора данных
+├── scripts/               # CLI сбора данных
 │   └── ingestion/         # sources/, parsers/, normalize.py, loader.py
 ├── static/logos/          # курируемые SVG-логотипы (ADR-0006)
-└── tests/                 # smoke API, расчёт статусов, доходность и DSI
+└── tests/                 # API, парсеры disclosure, нормализация, loader
 ```
 
 ## Первый запуск
@@ -58,8 +58,9 @@ uv run ruff check .
 - `DIVCAL_LOG_LEVEL`, `DIVCAL_WATCH_SOON_DAYS`;
 - `DIVCAL_WATCH_DEFAULT_THRESHOLD_DAYS`;
 - `DIVCAL_HTTP_TIMEOUT_SECONDS`;
-- `DIVCAL_HTTP_RETRIES`.
-- 
+- `DIVCAL_HTTP_RETRIES`;
+- `DIVCAL_DISCLOSURE_LOOKBACK_DAYS` — глубина повторного обхода ленты disclosure (3 дня).
+
 Все значения имеют умолчания: сервис стартует без `.env` на файле `./divcal.db`.
 
 ## API
@@ -88,7 +89,18 @@ uv run python -m scripts.sync_logos [--dry-run] [--verbose]
 повторами запросов (таймаут и число попыток — из конфигурации), нормализация,
 идемпотентный upsert в `tickers` и деактивация бумаг доски TQBR, исчезнувших из
 листинга. Повторный запуск не создаёт дублей; при сбое источника данные не
-записываются и деактивация не выполняется. Остальные скрипты — argparse-каркасы.
+записываются и деактивация не выполняется.
+
+`fetch_meetings_disclosure` реализован полностью: читает ленту сообщений
+disclosure.ru (АК&М), отбирает объявления собраний, итоги собраний и сообщения
+о дате отсечки, разбирает даты/тип собрания/период и сумму дивиденда, сопоставляет
+эмитента с активным тикером по ISIN или наименованию и идемпотентно пишет
+`shareholder_meetings` и `record_dates`. Резервный источник `--source e-disclosure`
+использует публичное зеркало Интерфакса `disclosure.1prime.ru`: сам
+`e-disclosure.ru` блокирует автоматические запросы анти-бот-защитой.
+`--dry-run` проходит весь пайплайн без записи в БД. Коды возврата: 0 — успех,
+1 — все источники/БД недоступны, 2 — часть сообщений не загрузилась или не
+разобралась. Остальные скрипты — argparse-каркасы.
 
 ## Миграции
 
@@ -106,17 +118,16 @@ uv run alembic upgrade head --sql  # offline-SQL без подключения �
 
 ## Что пока заглушки
 
-- репозитории `tickers`, `meetings`, `record_dates`, `watchlist` — пустые выборки;
-- `GET /meetings/{id}` — всегда 404; `POST` и `DELETE /watchlist` — 501;
-- сборка `dividend`, `dsi`-связок и `next_meeting_date` в DTO — TODO в сервисах;
-- скрипты `fetch_meetings_disclosure`, `fetch_dividend_history_moex`, `sync_logos` —
-  без пайплайна fetch/parse/normalize/load;
-- `scripts/ingestion/loader.py` — `load_meetings`, `load_record_dates`,
-  `load_dividend_metrics` бросают `NotImplementedError`.
+- репозиторий `watchlist` и `POST`/`DELETE /watchlist` — 501;
+- сборка `next_meeting_date`/`next_dividend` для сторожков — TODO в сервисе watchlist;
+- скрипты `fetch_dividend_history_moex`, `sync_logos` — без пайплайна
+  fetch/parse/normalize/load;
+- `scripts/ingestion/loader.py::load_dividend_metrics` бросает `NotImplementedError`.
 
-Реализованы полностью: `compute_yield`, `calc_status`, `calc_days_to_cutoff`,
-`calc_dsi`, миграции Alembic, валидация параметров API, сбор тикеров MOEX ISS
-(`fetch_tickers_moex`).
+Реализованы полностью: `GET /meetings`, `GET /meetings/{id}`, `GET /record-dates`,
+`GET /tickers`, `compute_yield`, `calc_status`, `calc_days_to_cutoff`, `calc_dsi`,
+миграции Alembic, валидация параметров API, сбор тикеров MOEX ISS
+(`fetch_tickers_moex`) и собраний/отсечек disclosure (`fetch_meetings_disclosure`).
 
 ## Источники истины
 
