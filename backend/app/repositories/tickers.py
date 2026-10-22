@@ -58,12 +58,20 @@ def list_tickers(
     return rows[start : start + page_size], total
 
 
-def get_by_ticker(session: Session, ticker: str) -> Ticker | None:
-    """Тикер по SECID (верхний регистр).
+def list_active_tickers(session: Session) -> list[Ticker]:
+    """Все активные тикеры, сортировка ticker ASC (для скриптов сбора)."""
+    return list(
+        session.execute(
+            select(Ticker).where(Ticker.is_active.is_(True)).order_by(Ticker.ticker)
+        ).scalars()
+    )
 
-    TODO: реализовать выборку по бизнес-ключу.
-    """
-    return None
+
+def get_by_ticker(session: Session, ticker: str) -> Ticker | None:
+    """Тикер по SECID (верхний регистр)."""
+    return session.execute(
+        select(Ticker).where(Ticker.ticker == ticker)
+    ).scalar_one_or_none()
 
 
 def upsert_tickers(session: Session, items: Iterable[TickerUpsert]) -> tuple[int, int]:

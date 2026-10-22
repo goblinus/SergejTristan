@@ -8,28 +8,51 @@ from app.repositories import meetings as meetings_repo
 from app.repositories import record_dates as record_dates_repo
 from app.schemas.common import Page
 from app.schemas.meeting import Meeting
-from app.schemas.record_date import RecordDate, RecordDateKind
+from app.schemas.record_date import RecordDate, RecordDateBrief, RecordDateKind
+from app.services.dividends import build_dividend_terms, get_dsi
+
+
+def _select_dividend_record_date(meeting):
+    """Выбирает отсечку dividend_payment, вложенную в карточку собрания.
+
+    Если связанных отсечек несколько, предпочитается ближайшая на дату
+    собрания или позже; иначе — самая поздняя из имеющихся.
+    """
+    candidates = [rd for rd in meeting.record_dates if rd.kind == "dividend_payment"]
+    if not candidates:
+        return None
+
+    after = [rd for rd in candidates if rd.record_date >= meeting.meeting_date]
+    if after:
+        return min(after, key=lambda rd: rd.record_date)
+    return max(candidates, key=lambda rd: rd.record_date)
 
 
 def meeting_to_dto(meeting) -> Meeting:
-    """Собирает DTO собрания.
-
-    TODO: dividend (через services.dividends.build_dividend_terms), dsi,
-    вложенная record_date — после реализации join-выборок репозитория.
-    """
+    """Собирает DTO собрания с дивидендными условиями и вложенной отсечкой."""
+    ticker = meeting.ticker
+    record_date = _select_dividend_record_date(meeting)
     return Meeting(
         id=meeting.id,
-        ticker=meeting.ticker.ticker,
-        short_name=meeting.ticker.short_name,
-        logo_url=meeting.ticker.logo_url,
+        ticker=ticker.ticker,
+        short_name=ticker.short_name,
+        logo_url=ticker.logo_url,
         meeting_date=meeting.meeting_date,
         meeting_type=meeting.meeting_type,
         description=meeting.description,
-        dividend=None,
-        dsi=meeting.ticker.dsi,
+        dividend=build_dividend_terms(meeting, ticker),
+        dsi=get_dsi(ticker),
         source_url=meeting.source_url,
         fetched_at=meeting.fetched_at,
-        record_date=None,
+        record_date=(
+            RecordDateBrief(
+                record_date=record_date.record_date,
+                kind=record_date.kind,
+                fetched_at=record_date.fetched_at,
+            )
+            if record_date is not None
+            else None
+        ),
     )
 
 

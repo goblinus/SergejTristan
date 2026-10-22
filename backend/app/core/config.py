@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     watch_default_threshold_days: int = 7
     http_timeout_seconds: int = 30
     http_retries: int = 3
+    # Глубина повторного обхода ленты disclosure, календарных дней.
+    disclosure_lookback_days: int = 3
 
 
 @lru_cache
