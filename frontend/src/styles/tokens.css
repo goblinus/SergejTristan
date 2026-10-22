@@ -1,0 +1,77 @@
+/* Токены — design/ui/2026-10-19_visual-style_ui.md (единственный источник истины). */
+:root {
+  color-scheme: dark;
+
+  /* Поверхности и фон */
+  --bg-base: #121214;
+  --surface-0: #161618;
+  --surface-1: #1d1d20;
+  --surface-2: #232327;
+  --surface-3: #2b2b30;
+  --surface-4: #313137;
+  --outline: #3a3a40;
+  --outline-variant: #2a2a2e;
+
+  /* Текст */
+  --on-surface: #e6e1e8;
+  --on-surface-variant: #c9c5cf;
+  --on-surface-muted: #8e8b96;
+
+  /* Акценты */
+  --primary: #9db8ff;
+  --on-primary: #0b1026;
+  --primary-container: #2a3454;
+  --on-primary-container: #c6d4ff;
+
+  /* Семантика сроков и статусов */
+  --warn: #ffd54f;
+  --on-warn: #3a2e00;
+  --warn-container: #4a3c12;
+  --danger: #ff8a80;
+  --danger-container: #5c1f1b;
+  --success: #7fd9a6;
+  --neutral-chip: #3a3a40;
+  --past: #57575e;
+
+  /* Типографика */
+  --font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size-headline-sm: 1.5rem;
+  --line-height-headline-sm: 2rem;
+  --font-size-title-lg: 1.25rem;
+  --line-height-title-lg: 1.75rem;
+  --font-size-title-md: 1rem;
+  --line-height-title-md: 1.5rem;
+  --font-size-body-lg: 1rem;
+  --line-height-body-lg: 1.5rem;
+  --font-size-body-md: 0.875rem;
+  --line-height-body-md: 1.25rem;
+  --font-size-label-lg: 0.875rem;
+  --line-height-label-lg: 1.25rem;
+  --font-size-label-md: 0.75rem;
+  --line-height-label-md: 1rem;
+
+  /* Радиусы и сетка */
+  --radius-card: 16px;
+  --radius-chip: 999px;
+  --radius-field: 12px;
+  --radius-button: 20px;
+  --radius-snack: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Тени */
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Z-индексы */
+  --z-header: 100;
+  --z-modal: 200;
+  --z-snackbar: 300;
+
+  /* Служебные */
+  --content-max: 1200px;
+}
