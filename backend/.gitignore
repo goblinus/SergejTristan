@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 .env
-divcal.db
+# divcal.db — тестовая БД с демо-данными, версионируется (нужна для скилла install)
 divcal.db-wal
 divcal.db-shm
 .pytest_cache/
