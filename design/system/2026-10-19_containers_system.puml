@@ -8,7 +8,7 @@ actor "Пользователь" as user
 
 rectangle "Frontend SPA" as fe {
   [Vue.js 3 (Composition API)\nTypeScript\nтёмная Material-тема] as spa
-  [Отображение статуса\n(готовый {status, days_to_cutoff}\nиз API, маппинг в токены)] as calc
+  [Отображение статуса\n(готовый {status, days_to_event}\nиз API, маппинг в токены)] as calc
 }
 
 rectangle "Backend" as be {
@@ -49,9 +49,9 @@ api --> orm
 orm --> db : чтение (домен)\nчтение+запись (сторожки)
 
 ' Поток 3: расчёт статуса — на сервере (Р-3)
-orm --> api : status / days_to_cutoff\n(каноническая шкала Р-4)
+orm --> api : status / days_to_event\n(каноническая шкала Р-4)
 api --> spa : готовый status
-spa --> calc : status, days_to_cutoff
+spa --> calc : status, days_to_event
 calc --> spa : визуальная индикация\n(DeadlineIndicator)
 
 note bottom of upsert
@@ -64,6 +64,10 @@ note bottom of calc
   Статус сторожка вычисляется в API
   на чтении от даты сервера (Р-3).
   На клиенте пороги не пересчитываются.
+  days_to_event — сутки от текущей даты
+  сервера до даты события сторожка:
+  отсечка dividend_payment, иначе ближайшее
+  собрание с dividend_question = true.
 end note
 
 @enduml

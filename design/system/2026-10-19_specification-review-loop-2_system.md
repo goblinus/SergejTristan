@@ -35,7 +35,7 @@
 - Глоссарий: `record_date`/`record_dates`, `watchlist_items`/`/watchlist`, каноническая шкала статусов (серверный расчёт), префикс `/api/v1` — с записью об обновлении.
 - Каноническая ER-модель и ER-диаграмма приведены к Р-2.
 - Контейнерная модель и диаграмма: расчёт статуса в API (Р-3), актуальные имена эндпоинтов.
-- Оформлен ADR-0004 «Стек фронтенда» (`design/system/adr/2026-10-19_adr-0004-стек-фронтенда_system.md`) — принят по предложению frontend-области.
+- Оформлен ADR-0004 «Стек фронтенда» (`design/system/adr/2026-10-19_adr-0004-frontend-stack_system.md`) — принят по предложению frontend-области.
 
 ## Новые решения system-designer (канон для доработки)
 
@@ -59,7 +59,7 @@
 
 ### Р-10. Порт и base path бэкенда в dev
 
-Закрывает открытый вопрос frontend (`типы-и-api-клиент`, №1): порт бэкенда по умолчанию **8000** (`uvicorn ... :8000`, см. `design/backend/2026-10-19_зависимости-и-окружение_backend.md`), base path — `/api/v1`; Vite-proxy `/api` → `http://localhost:8000` сохраняет путь, корректно.
+Закрывает открытый вопрос frontend (`типы-и-api-клиент`, №1): порт бэкенда по умолчанию **8000** (`uvicorn ... :8000`, см. `design/backend/2026-10-19_dependencies-and-env_backend.md`), base path — `/api/v1`; Vite-proxy `/api` → `http://localhost:8000` сохраняет путь, корректно.
 
 ## Задачи по областям
 
@@ -86,7 +86,7 @@
 
 ## Связанные документы
 
-- [2026-10-19_ревью-спецификаций-раунд-1_system.md](./2026-10-19_ревью-спецификаций-раунд-1_system.md)
-- [2026-10-19_глоссарий-и-правила-стыковки_system.md](./2026-10-19_глоссарий-и-правила-стыковки_system.md)
-- [2026-10-19_модель-данных-каноническая_system.md](./2026-10-19_модель-данных-каноническая_system.md)
-- [adr/2026-10-19_adr-0004-стек-фронтенда_system.md](./adr/2026-10-19_adr-0004-стек-фронтенда_system.md)
+- [2026-10-19_specification-review-loop-1_system](./2026-10-19_specification-review-loop-1_system.md)
+- [2026-10-19_dictinary-and-coupling-rules_system](./2026-10-19_dictinary-and-coupling-rules_system.md)
+- [2026-10-19_canonical-data-model_system](./2026-10-19_canonical-data-model_system.md)
+- [2026-10-19_adr-0004-frontend-stack_system](./adr/2026-10-19_adr-0004-frontend-stack_system.md)

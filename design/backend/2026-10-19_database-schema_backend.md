@@ -6,7 +6,7 @@
 
 СУБД — по ADR-0001 (`design/system/adr/`). Для MVP целевой вариант — SQLite (локальная однопользовательская система, файл БД). Схема и ORM-модели проектируются СУБД-нейтрально (обобщённые типы SQLAlchemy: `Integer`, `String`, `Boolean`, `Date`, `DateTime`, `Text`), что оставляет возможность смены диалекта на PostgreSQL без переделки моделей.
 
-См. ER-диаграмму: [2026-10-19_схема-бд_backend.puml](./2026-10-19_схема-бд_backend.puml).
+См. ER-диаграмму: [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.puml).
 
 ## Общие соглашения
 
@@ -29,7 +29,7 @@
 | isin | VARCHAR(12) | NULL | ISIN бумаги. |
 | board | VARCHAR(16) | NULL | Режим торгов (например, `TQBR`). Информационно. |
 | lot_size | INTEGER | NULL | Размер лота. Информационно. |
-| logo_url | VARCHAR(512) | NULL | URL или относительный путь к логотипу эмитента. NULL — логотип не задан. MVP — курируемые локальные SVG (ADR-0006). |
+| logo_url | VARCHAR(512) | NULL | URL или относительный путь к логотипу эмитента. NULL — логотип не задан. MVP — курируемые локальные SVG (ADR-0006): `/static/logos/{TICKER}.svg` при наличии ассета, иначе NULL. Заполняется только скриптом `sync_logos.py` (единственное поле `tickers`, которое он меняет; `source_url`/`fetched_at` не затрагиваются) — в том числе для неактивных тикеров. |
 | last_price | NUMERIC(18,4) | NULL | Последняя цена акции, ₽ (MOEX ISS). Техническое поле для расчёта доходности; наружу не отдаётся. |
 | price_updated_at | DATETIME | NULL | Момент последней успешной загрузки цены (UTC). |
 | dsi | SMALLINT | NULL, CHECK (0..100) | Индекс стабильности дивидендов, 0–100. Материализованный снапшот, пересчитывается скриптом сбора (ADR-0005). |
@@ -65,7 +65,7 @@
 
 ### record_dates — даты дивидендной отсечки
 
-Дата закрытия реестра. Возможны два смысла отсечки, фиксируем их явно колонкой `kind`: закрытие реестра для участия в собрании и закрытие реестра для выплаты дивидендов. «Сторожок» отслеживает записи `kind = 'dividend_payment'`.
+Дата закрытия реестра. Возможны два смысла отсечки, фиксируем их явно колонкой `kind`: закрытие реестра для участия в собрании и закрытие реестра для выплаты дивидендов. «Сторожок» отслеживает записи `kind = 'dividend_payment'`; при их отсутствии событием сторожка становится собрание с `dividend_question = true` из `shareholder_meetings` (решение владельца от 2026-10-22, правило выбора — [2026-10-19_alarm-date-calculation-rules_backend](./2026-10-19_alarm-date-calculation-rules_backend.md), раздел «Выбор события»). Отсечки `meeting_participation` событие сторожка не формируют.
 
 | Колонка | Тип | Ограничения | Комментарий |
 |---|---|---|---|
@@ -98,13 +98,13 @@
 Индексы:
 - `uq_watchlist_ticker` — UNIQUE(ticker_id).
 
-Поля `source_url`/`fetched_at` отсутствуют: сущность пользовательская, пишется только API, источника раскрытия у неё нет. Вычисляемые поля (`days_to_cutoff`, `status`) в БД **не хранятся** — см. [2026-10-19_правила-расчёта-статуса-сторожка_backend.md](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md).
+Поля `source_url`/`fetched_at` отсутствуют: сущность пользовательская, пишется только API, источника раскрытия у неё нет. Вычисляемые поля `next_record_date`, `next_meeting_date`, `next_dividend`, `days_to_event` (ранее `days_to_cutoff`), `status` в БД **не хранятся**: они выводятся на чтении из `record_dates` (`kind = 'dividend_payment'`) либо, при отсутствии будущей отсечки, из `shareholder_meetings` (`dividend_question = true`) — см. [2026-10-19_alarm-date-calculation-rules_backend](./2026-10-19_alarm-date-calculation-rules_backend.md).
 
 ## Дивидендные метрики (ADR-0005)
 
 - **Период и сумма на акцию** хранятся в `shareholder_meetings` (`dividend_period`, `dividend_per_share`). Оба поля nullable: источник может раскрыть сумму без периода и наоборот. Если сумма указана, она проверяется на `>= 0`.
 - **Доходность** (`yield_percent`) в БД **не хранится**: вычисляется в сервисном слое API как `dividend_per_share / tickers.last_price × 100` с округлением до 0.1. Нет суммы или цены — `null`. Цена (`last_price`) обновляется скриптом сбора тикеров.
-- **DSI** — материализованный снапшот в `tickers.dsi` (0–100) с меткой `dsi_updated_at`; рассчитывается скриптом сбора по истории дивидендов MOEX (формула — [2026-10-20_dividend-metrics_backend.md](./2026-10-20_dividend-metrics_backend.md)). В API отдаётся как есть; на чтении не пересчитывается.
+- **DSI** — материализованный снапшот в `tickers.dsi` (0–100) с меткой `dsi_updated_at`; рассчитывается скриптом сбора по истории дивидендов MOEX (формула — [2026-10-20_dividend-metrics_backend](./2026-10-20_dividend-metrics_backend.md)). В API отдаётся как есть; на чтении не пересчитывается.
 - Полная история выплат в БД MVP не хранится: DSI — единственная производная от истории величина (ограничение зафиксировано в ADR-0005).
 
 ## Связи
@@ -136,8 +136,8 @@
 
 ## Связанные документы
 
-- [2026-10-19_архитектура-бэкенда_backend.md](./2026-10-19_архитектура-бэкенда_backend.md)
-- [2026-10-19_api-контракт_backend.md](./2026-10-19_api-контракт_backend.md)
-- [2026-10-19_спецификация-скриптов-сбора_backend.md](./2026-10-19_спецификация-скриптов-сбора_backend.md)
-- [2026-10-19_правила-расчёта-статуса-сторожка_backend.md](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md)
-- [2026-10-20_дивидендные-метрики_backend.md](./2026-10-20_dividend-metrics_backend.md)
+- [2026-10-19_architecture_backend](./2026-10-19_architecture_backend.md)
+- [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md)
+- [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md)
+- [2026-10-19_alarm-date-calculation-rules_backend](./2026-10-19_alarm-date-calculation-rules_backend.md)
+- [2026-10-20_dividend-metrics_backend](./2026-10-20_dividend-metrics_backend.md)

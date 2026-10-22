@@ -1,4 +1,4 @@
-@startuml 2026-10-19_компонентная-схема_frontend
+@startuml 2026-10-19_components-schema_frontend
 !theme plain
 skinparam componentStyle rectangle
 skinparam linetype ortho

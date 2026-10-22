@@ -7,3 +7,5 @@ divcal.db-wal
 divcal.db-shm
 .pytest_cache/
 .ruff_cache/
+static/logos/*.svg
+pytest-of-*/
