@@ -67,39 +67,6 @@ def list_active_tickers(session: Session) -> list[Ticker]:
     )
 
 
-def list_all_tickers(session: Session) -> list[Ticker]:
-    """Все тикеры, включая неактивные, сортировка ticker ASC.
-
-    Используется скриптом логотипов: `logo_url` — атрибут эмитента, а не
-    активного листинга, поэтому синхронизируются все записи `tickers`.
-    """
-    return list(session.execute(select(Ticker).order_by(Ticker.ticker)).scalars())
-
-
-def update_logo_urls(session: Session, mapping: dict[str, str | None]) -> int:
-    """Проставляет `logo_url` по бизнес-ключу `ticker`.
-
-    Обновляются только строки, значение которых отличается от `mapping`
-    (в том числе сброс в `NULL`). Возвращает число изменённых строк.
-    """
-    if not mapping:
-        return 0
-
-    rows = session.execute(
-        select(Ticker).where(Ticker.ticker.in_(mapping))
-    ).scalars()
-
-    updated = 0
-    for row in rows:
-        new_value = mapping[row.ticker]
-        if row.logo_url != new_value:
-            row.logo_url = new_value
-            updated += 1
-
-    session.flush()
-    return updated
-
-
 def get_by_ticker(session: Session, ticker: str) -> Ticker | None:
     """Тикер по SECID (верхний регистр)."""
     return session.execute(

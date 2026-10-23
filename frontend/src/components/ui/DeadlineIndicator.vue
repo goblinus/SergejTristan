@@ -3,7 +3,6 @@ import { computed } from 'vue';
 
 import type { WatchStatus } from '@/types/watchlist';
 import { formatDaysLabel } from '@/utils/date';
-import { deadlineTone } from '@/utils/deadline';
 
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './iconPaths';
@@ -27,7 +26,6 @@ const ICONS: Record<WatchStatus, IconName> = {
 };
 
 const icon = computed(() => ICONS[props.status]);
-const tone = computed(() => deadlineTone(props.days, props.status));
 
 const text = computed(() => {
   const days = props.days;
@@ -50,7 +48,7 @@ const text = computed(() => {
 </script>
 
 <template>
-  <span :class="['deadline', `deadline--${tone}`]" :title="text">
+  <span :class="['deadline', `deadline--${status}`]" :title="text">
     <AppIcon :name="icon" :size="16" />
     <span class="deadline__text tabular">{{ text }}</span>
   </span>
@@ -69,30 +67,35 @@ const text = computed(() => {
   white-space: nowrap;
 }
 
-.deadline--neutral {
+.deadline--no_date {
   background: var(--neutral-chip);
   color: var(--on-surface-variant);
 }
 
-.deadline--muted {
-  background: var(--surface-1);
-  color: var(--on-surface-muted);
-  border: 1px solid var(--outline-variant);
+.deadline--far {
+  background: var(--surface-3);
+  color: var(--on-surface);
 }
 
-.deadline--green {
-  background: var(--success-container);
-  color: var(--success);
+.deadline--near {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
-.deadline--yellow {
+.deadline--hot {
   background: var(--warn-container);
   color: var(--warn);
 }
 
-.deadline--red {
+.deadline--critical {
   background: var(--danger-container);
   color: var(--danger);
+}
+
+.deadline--past {
+  background: var(--surface-1);
+  color: var(--on-surface-muted);
+  border: 1px solid var(--outline-variant);
 }
 
 .deadline__text {

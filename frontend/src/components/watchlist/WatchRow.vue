@@ -63,7 +63,7 @@ function requestRemove(): void {
     />
 
     <div class="row__foot">
-      <DeadlineIndicator :status="item.status" :days="item.days_to_event" compact />
+      <DeadlineIndicator :status="item.status" :days="item.days_to_cutoff" compact />
       <DsiBadge :value="item.dsi" />
     </div>
   </li>

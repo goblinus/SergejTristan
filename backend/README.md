@@ -1,10 +1,8 @@
 # Бэкенд «Дивидендного календаря»
 
 API и офлайн-сбор данных сервиса отслеживания дивидендных событий Московской биржи.
-Реализованы все эндпоинты API (`/tickers`, `/meetings`, `/record-dates`, `/watchlist`),
-сбор тикеров с MOEX ISS, собраний/дат отсечки из disclosure и синхронизация
-логотипов эмитентов. Не реализован сбор истории дивидендов (расчёт DSI) — см.
-раздел «Что пока не реализовано».
+Реализованы календарь собраний (`GET /meetings`, `GET /meetings/{id}`) и сбор
+собраний/дат отсечки из disclosure; остальные заглушки перечислены ниже.
 
 ## Стек
 
@@ -22,19 +20,16 @@ backend/
 │   ├── main.py            # FastAPI-приложение, /api/v1, /health, /static
 │   ├── core/              # Settings, engine/Session, логирование
 │   ├── api/               # роутеры: tickers, meetings, record-dates, watchlist
-│   ├── services/          # бизнес-логика: календарь, сторожки, статусы, доходность, DSI
-│   ├── repositories/      # доступ к данным: чтение API, CRUD сторожков, upsert для скриптов
+│   ├── services/          # бизнес-логика: статусы, доходность, DSI, сборка DTO
+│   ├── repositories/      # доступ к данным: чтение API и upsert для скриптов
 │   ├── models/            # ORM-модели SQLAlchemy 2.x
 │   └── schemas/           # Pydantic-схемы API
 ├── alembic.ini            # конфигурация Alembic
 ├── migrations/            # Alembic: env.py, script.py.mako, versions/001_initial.py
-├── assets/logos/          # курируемые SVG-логотипы {TICKER}.svg (ADR-0006)
 ├── scripts/               # CLI сбора данных
 │   └── ingestion/         # sources/, parsers/, normalize.py, loader.py
-├── static/logos/          # раздача SVG-логотипов по /static/logos, наполняется
-│                          # скриптом sync_logos
-└── tests/                 # API, статусы сторожков, дивидендные метрики, парсеры
-                           # и нормализация disclosure/MOEX, loader, CLI сбора
+├── static/logos/          # курируемые SVG-логотипы (ADR-0006)
+└── tests/                 # API, парсеры disclosure, нормализация, loader
 ```
 
 ## Первый запуск
@@ -70,38 +65,14 @@ uv run ruff check .
 
 ## API
 
-Все эндпоинты — под `/api/v1`:
+Все эндпоинты — под `/api/v1`: 
 
-- `GET /tickers` — активные тикеры, поиск `q`, пагинация;
-- `GET /meetings` — собрания с дивидендным вопросом (`from`, `to`, `ticker`);
-- `GET /meetings/{id}` — карточка собрания;
-- `GET /record-dates` — даты отсечки (`from`, `to`, `ticker`, `kind`);
-- `GET /watchlist` — сторожки с вычисленными на чтении полями;
-- `POST /watchlist` — добавить тикер в отслеживание (идемпотентно: 201 —
-  создан, 200 — уже был, 404 — тикер не найден);
-- `DELETE /watchlist/{ticker}` — снять с отслеживания (204 / 404).
-
-Все списки возвращаются в конверте `Page` (`items`, `page`, `page_size`, `total`);
-`page_size` — 1..100. Ошибки валидации — 422.
-
-### Событие сторожка в `GET /watchlist`
-
-Дата ближайшего будущего события определяется приоритетом «отсечка → собрание»
-(решение владельца от 2026-10-22):
-
-1. ближайшая отсечка `dividend_payment` с `record_date >= today`; `next_meeting_date`
-   и `next_dividend` берутся у связанного с ней собрания;
-2. если таких отсечек нет — ближайшее собрание с `dividend_question = true`
-   и `meeting_date >= today`: в этом режиме `next_record_date = next_meeting_date =
-   meeting_date`, `next_dividend` — дивидендные условия этого собрания;
-3. если будущих событий нет — `next_record_date`/`next_meeting_date`/`days_to_event`
-   равны `null`; `status = past`, когда есть прошедшие события (отсечка
-   `dividend_payment` или собрание с дивидендным вопросом), иначе `status = no_date`.
-
-`status` считается от даты события: `critical` — 0 дней, `hot` — 1..`threshold_days`,
-`near` — до `DIVCAL_WATCH_SOON_DAYS`, `far` — дальше. Сортировка каноническая:
-сначала датированные сторожки по дате события, затем `no_date`, затем `past`
-(внутри групп — по тикеру).
+- `GET /tickers`;
+- `GET /meetings`;
+- `GET /meetings/{id}`;
+- `GET /record-dates`;
+- `GET/POST /watchlist`;
+- `DELETE /watchlist/{ticker}`.
 
 Контракт — `design/backend/2026-10-19_api-contract_backend.md`.
 
@@ -129,23 +100,7 @@ disclosure.ru (АК&М), отбирает объявления собраний,
 `e-disclosure.ru` блокирует автоматические запросы анти-бот-защитой.
 `--dry-run` проходит весь пайплайн без записи в БД. Коды возврата: 0 — успех,
 1 — все источники/БД недоступны, 2 — часть сообщений не загрузилась или не
-разобралась.
-
-`sync_logos` реализован полностью: читает курируемые SVG из `assets/logos/`
-(файлы `{TICKER}.svg`, тикер в имени сравнивается без учёта регистра),
-проверяет, что файл — XML с корневым элементом `<svg>`, копирует валидные
-ассеты в `static/logos/{TICKER}.svg` только при отсутствии или изменении
-содержимого и проставляет `tickers.logo_url = "/static/logos/{TICKER}.svg"`
-для всех тикеров (включая неактивные); тикерам без валидного ассета значение
-сбрасывается в `NULL` (UI показывает монограмму). Обновляются только строки,
-где значение отличается. Битый или не-SVG файл — WARNING, тикер считается
-«без ассета», остальные обрабатываются. `--dry-run` выполняет валидацию и
-подсчёт без копирования файлов и записи в БД. Защита от массового обнуления:
-отсутствующий или пустой (без `.svg`) каталог источника — ERROR, код 1,
-БД и файлы не изменяются. Коды возврата: 0 — успех, в том числе при частичных
-WARNING; 1 — фатальная ошибка источника, записи статики или БД. Итоговая строка
-лога содержит счётчики ассетов (найдено/валидно/битых), тикеров с логотипом,
-очищенных и обновлённых записей, скопированных файлов и признак `dry_run`.
+разобралась. Остальные скрипты — argparse-каркасы.
 
 ## Миграции
 
@@ -161,33 +116,18 @@ uv run alembic upgrade head --sql  # offline-SQL без подключения �
 
 Автоматически при старте API миграции не применяются — только отдельной командой.
 
-## Что нужно доделать
+## Что пока заглушки
 
-| № | Задача | Где | Блокер / зависимость | Приоритет |
-|---|---|---|---|---|
-| 1 | Парсер истории дивидендов MOEX (блок `dividends`) | `scripts/ingestion/parsers/moex_dividends.py` | эндпоинт `/iss/securities/{secid}/dividends.json` сейчас не отдаёт блок `dividends` (проверено 2026-10-22); парсер должен переживать его отсутствие | Высокий |
-| 2 | Агрегация годовых DPS за 5 лет → `NormalizedDividendMetrics` | `scripts/ingestion/normalize.py` | п. 1 | Высокий |
-| 3 | Запись снапшота DSI: `update_dsi()` (`dsi`, `dsi_updated_at`) | `app/repositories/tickers.py` | — | Высокий |
-| 4 | `load_dividend_metrics()` вместо `NotImplementedError` | `scripts/ingestion/loader.py` | п. 3 | Высокий |
-| 5 | Оркестрация `fetch_dividend_history_moex` (`--dry-run`, коды 0/1/2) | `scripts/fetch_dividend_history_moex.py` | п. 1–4 | Высокий |
-| 6 | Тесты DSI-пайплайна: парсер, агрегация, порог «< 3 лет → null», загрузчик, CLI | `tests/` | п. 1–5 | Высокий |
-| 7 | Выбор источника истории дивидендов | `design/backend/` | старый MOEX ISS не отдаёт данные; варианты: disclosure.ru (бесплатно, парсинг сообщений), MOEX CCI `/iss/cci/corp-actions/dividends` (подписка), API НРД (договор) | Высокий |
-| 8 | Планировщик ежедневного сбора (cron / Планировщик Windows) | вне кода API | настраивается при эксплуатации | Средний |
-| 9 | Наполнение справочника логотипов | `assets/logos/` | сейчас 6 из 510 тикеров; остальным показывается монограмма | Средний |
-| 10 | Синхронизировать `canonical-data-model_system.md` с fallback «отсечка → собрание» | `design/system/` | решение system-designer | Низкий |
-| 11 | Актуализировать дерево `tests/` в `architecture_backend.md` | `design/backend/` | — | Низкий |
-| 12 | Уточнить имя `next_record_date` (в fallback содержит дату собрания) | `design/backend/`, `design/frontend/`, `design/ui/` | решение владельца/system-designer | Низкий |
+- репозиторий `watchlist` и `POST`/`DELETE /watchlist` — 501;
+- сборка `next_meeting_date`/`next_dividend` для сторожков — TODO в сервисе watchlist;
+- скрипты `fetch_dividend_history_moex`, `sync_logos` — без пайплайна
+  fetch/parse/normalize/load;
+- `scripts/ingestion/loader.py::load_dividend_metrics` бросает `NotImplementedError`.
 
-Итог: DSI в API и UI уже отдаётся, но `tickers.dsi` пуст, пока не реализован сбор истории дивидендов (п. 1–7).
-
-Реализованы полностью: все эндпоинты API (`GET /tickers`, `GET /meetings`,
-`GET /meetings/{id}`, `GET /record-dates`, `GET/POST /watchlist`,
-`DELETE /watchlist/{ticker}`), вычисляемые поля сторожка (`next_record_date`,
-`next_meeting_date`, `next_dividend`, `days_to_event`, `status`, `dsi`) с выбором
-события «отсечка → fallback на собрание», `compute_yield`, `calc_status`,
-`calc_days_to_event`, `calc_dsi`, миграции Alembic, валидация параметров API,
-сбор тикеров MOEX ISS (`fetch_tickers_moex`), собраний/отсечек disclosure
-(`fetch_meetings_disclosure`) и синхронизация логотипов (`sync_logos`).
+Реализованы полностью: `GET /meetings`, `GET /meetings/{id}`, `GET /record-dates`,
+`GET /tickers`, `compute_yield`, `calc_status`, `calc_days_to_cutoff`, `calc_dsi`,
+миграции Alembic, валидация параметров API, сбор тикеров MOEX ISS
+(`fetch_tickers_moex`) и собраний/отсечек disclosure (`fetch_meetings_disclosure`).
 
 ## Источники истины
 
@@ -202,3 +142,4 @@ uv run alembic upgrade head --sql  # offline-SQL без подключения �
   `2026-10-19_adr-0002-backend-web-framework_system.md`,
   `2026-10-20_adr-0005-dividend-metrics_system.md`,
   `2026-10-20_adr-0006-company-logos_system.md`.
+  

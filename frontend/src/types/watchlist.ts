@@ -16,7 +16,7 @@ export interface WatchlistItem {
   created_at: string;
   next_record_date: string | null;
   next_meeting_date: string | null;
-  days_to_event: number | null;
+  days_to_cutoff: number | null;
   status: WatchStatus;
   next_dividend: DividendTerms | null;
   dsi: number | null;

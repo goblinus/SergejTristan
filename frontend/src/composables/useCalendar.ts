@@ -141,7 +141,7 @@ export function useCalendar(month: Ref<string>) {
         return {
           meeting,
           recordDate,
-          daysToCutoff: watchedItem?.days_to_event ?? localDays,
+          daysToCutoff: watchedItem?.days_to_cutoff ?? localDays,
           status: watchedItem?.status ?? estimateStatus(localDays),
           watched: watchedItem !== null,
         };
