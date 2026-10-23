@@ -49,15 +49,16 @@ uv run alembic upgrade head          # инициализация/обновле
 uv run uvicorn app.main:app --reload # dev-сервер API: http://127.0.0.1:8000
 uv run python -m scripts.fetch_tickers_moex           # сбор тикеров
 uv run python -m scripts.fetch_meetings_disclosure    # сбор собраний и отсечек
+uv run python -m scripts.sync_logos                   # синхронизация логотипов из assets/logos (по мере обновления набора)
 uv run pytest           # тесты
 uv run ruff check . && uv run ruff format --check .   # линт
 ```
 
-Документация API (автогенерация FastAPI): `http://127.0.0.1:8000/docs` (Swagger UI) — используется и фронтенд-разработчиком для сверки с [API-контрактом](./2026-10-19_api-контракт_backend.md).
+Документация API (автогенерация FastAPI): `http://127.0.0.1:8000/docs` (Swagger UI) — используется и фронтенд-разработчиком для сверки с [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md).
 
 ## Конфигурация окружения
 
-- Файл `.env` (шаблон `.env.example` в репозитории, сам `.env` — в `.gitignore`). Переменные — по таблице конфигурации в [архитектуре бэкенда](./2026-10-19_архитектура-бэкенда_backend.md) (префикс `DIVCAL_`).
+- Файл `.env` (шаблон `.env.example` в репозитории, сам `.env` — в `.gitignore`). Переменные — по таблице конфигурации в [2026-10-19_architecture_backend](./2026-10-19_architecture_backend.md) (префикс `DIVCAL_`).
 - Секретов нет. Все переменные имеют значения по умолчанию: после `uv sync` сервис стартует без `.env` на SQLite-файле `./divcal.db`.
 
 ## Порядок первого запуска (воспроизводимость)
@@ -69,8 +70,10 @@ uv run ruff check . && uv run ruff format --check .   # линт
 5. `uv run python -m scripts.fetch_meetings_disclosure` — первичное наполнение событий.
 6. `uv run uvicorn app.main:app --reload` — API готов для фронтенда.
 
+Логотипы не входят в обязательный порядок первого запуска: набор — курируемые файлы репозитория (`backend/assets/logos/{TICKER}.svg`), синхронизация выполняется по мере обновления набора командой `uv run python -m scripts.sync_logos` (только после шага 4 — скрипт обновляет уже существующие записи `tickers`). Валидация SVG выполняется стандартной библиотекой (`xml.etree.ElementTree`), дополнительных зависимостей не требуется; `static/logos/` — каталог вывода, в репозитории не заполняется вручную.
+
 ## Связанные документы
 
-- [2026-10-19_архитектура-бэкенда_backend.md](./2026-10-19_архитектура-бэкенда_backend.md)
-- [2026-10-19_схема-бд_backend.md](./2026-10-19_схема-бд_backend.md) (Alembic)
-- [2026-10-19_спецификация-скриптов-сбора_backend.md](./2026-10-19_спецификация-скриптов-сбора_backend.md)
+- [2026-10-19_architecture_backend](./2026-10-19_architecture_backend.md)
+- [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md) (Alembic)
+- [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md)

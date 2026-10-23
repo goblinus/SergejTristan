@@ -6,7 +6,7 @@
 
 ## Контекст системы
 
-См. диаграмму: [2026-10-19_контекст-системы_system.puml](./2026-10-19_контекст-системы_system.puml).
+См. диаграмму: [2026-10-19_system-context_system](./2026-10-19_system-context_system.puml).
 
 ### Участники и компоненты
 
@@ -62,11 +62,11 @@
 
 ## Связанные документы
 
-- [2026-10-19_контейнеры-и-потоки_system.md](./2026-10-19_контейнеры-и-потоки_system.md)
-- [2026-10-19_модель-данных-каноническая_system.md](./2026-10-19_модель-данных-каноническая_system.md)
-- [ADR-0001 Выбор СУБД](./adr/2026-10-19_adr-0001-выбор-субд_system.md)
-- [ADR-0002 Веб-фреймворк бэкенда](./adr/2026-10-19_adr-0002-веб-фреймворк-бэкенда_system.md)
-- [ADR-0003 Стратегия обновления данных](./adr/2026-10-19_adr-0003-стратегия-обновления-данных_system.md)
-- [ADR-0005 Дивидендные метрики](./adr/2026-10-20_adr-0005-dividend-metrics_system.md)
-- [ADR-0006 Логотипы эмитентов](./adr/2026-10-20_adr-0006-company-logos_system.md)
-- [2026-10-19_глоссарий-и-правила-стыковки_system.md](./2026-10-19_глоссарий-и-правила-стыковки_system.md)
+- [2026-10-19_containers-and-data-streaming_system](./2026-10-19_containers-and-data-streaming_system.md)
+- [2026-10-19_canonical-data-model_system](./2026-10-19_canonical-data-model_system.md)
+- ADR-0001, выбор СУБД: [2026-10-19_adr-0001-dbms-choice_system](./adr/2026-10-19_adr-0001-dbms-choice_system.md)
+- ADR-0002, веб-фреймворк бэкенда: [2026-10-19_adr-0002-backend-web-framework_system](./adr/2026-10-19_adr-0002-backend-web-framework_system.md)
+- ADR-0003, стратегия обновления данных: [2026-10-19_adr-0003-data-update-strategy_system](./adr/2026-10-19_adr-0003-data-update-strategy_system.md)
+- ADR-0005, дивидендные метрики: [2026-10-20_adr-0005-dividend-metrics_system](./adr/2026-10-20_adr-0005-dividend-metrics_system.md)
+- ADR-0006, логотипы эмитентов: [2026-10-20_adr-0006-company-logos_system](./adr/2026-10-20_adr-0006-company-logos_system.md)
+- [2026-10-19_dictinary-and-coupling-rules_system](./2026-10-19_dictinary-and-coupling-rules_system.md)

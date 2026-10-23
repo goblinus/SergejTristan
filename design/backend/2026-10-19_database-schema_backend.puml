@@ -67,7 +67,8 @@ tickers ||--o| watchlist : "ticker_id"
 
 note bottom of watchlist
 Вычисляемые поля сторожка
-(days_to_cutoff, status)
+(next_record_date, next_meeting_date,
+next_dividend, days_to_event, status)
 в таблице НЕ хранятся
 end note
 @enduml

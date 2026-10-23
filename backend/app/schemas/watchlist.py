@@ -21,7 +21,7 @@ class WatchlistItem(BaseModel):
     created_at: UtcDatetime
     next_record_date: date | None = None
     next_meeting_date: date | None = None
-    days_to_cutoff: int | None = None
+    days_to_event: int | None = None
     status: WatchStatus
     next_dividend: DividendTerms | None = None
     dsi: int | None = Field(default=None, ge=0, le=100)

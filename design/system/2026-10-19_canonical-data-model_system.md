@@ -9,7 +9,7 @@
 - backend-области — при проектировании схемы БД (SQLAlchemy-модели, миграции);
 - frontend-области — при определении TypeScript-типов и DTO.
 
-ER-диаграмма: [2026-10-19_er-модель_system.puml](./2026-10-19_er-модель_system.puml).
+ER-диаграмма: [2026-10-19_er-model_system](./2026-10-19_er-model_system.puml).
 
 ## Общие соглашения
 
@@ -85,7 +85,7 @@ ER-диаграмма: [2026-10-19_er-модель_system.puml](./2026-10-19_er-
 
 Полей `source_url`/`fetched_at` нет: сущность пользовательская, пишется только API, внешнего источника нет.
 
-Целевая дата отсечки **не хранится** в сторожке: она вычисляется динамически как ближайшая будущая `record_date` (`kind = dividend_payment`) по связи `watchlist_items.ticker_id -> record_dates`. Это устраняет рассинхрон при появлении новой отсечки — сторожок всегда «смотрит» на актуальную ближайшую дату. Статус (каноническая шкала `no_date/far/near/hot/critical/past`) — производное, **вычисляется в API на чтении** (Р-3/Р-4), в БД не хранится; правила — в `design/backend/2026-10-19_правила-расчёта-статуса-сторожка_backend.md`. `next_meeting_date` в DTO — тоже производное: дата собрания, связанного с `next_record_date` через `record_dates.meeting_id`; в БД не хранится.
+Целевая дата отсечки **не хранится** в сторожке: она вычисляется динамически как ближайшая будущая `record_date` (`kind = dividend_payment`) по связи `watchlist_items.ticker_id -> record_dates`. Это устраняет рассинхрон при появлении новой отсечки — сторожок всегда «смотрит» на актуальную ближайшую дату. Статус (каноническая шкала `no_date/far/near/hot/critical/past`) — производное, **вычисляется в API на чтении** (Р-3/Р-4), в БД не хранится; правила — в `design/backend/2026-10-19_alarm-date-calculation-rules_backend.md`. `next_meeting_date` в DTO — тоже производное: дата собрания, связанного с `next_record_date` через `record_dates.meeting_id`; в БД не хранится.
 
 ## Дивидендные метрики (ADR-0005)
 
@@ -114,7 +114,7 @@ ER-диаграмма: [2026-10-19_er-модель_system.puml](./2026-10-19_er-
 
 ## Связанные документы
 
-- [2026-10-19_обзор-архитектуры_system.md](./2026-10-19_обзор-архитектуры_system.md)
-- [2026-10-19_контейнеры-и-потоки_system.md](./2026-10-19_контейнеры-и-потоки_system.md)
-- [2026-10-19_глоссарий-и-правила-стыковки_system.md](./2026-10-19_глоссарий-и-правила-стыковки_system.md)
-- Физическая схема: [../backend/2026-10-19_схема-бд_backend.md](../backend/2026-10-19_схема-бд_backend.md)
+- [2026-10-19_architecture-summary_system](./2026-10-19_architecture-summary_system.md)
+- [2026-10-19_containers-and-data-streaming_system](./2026-10-19_containers-and-data-streaming_system.md)
+- [2026-10-19_dictinary-and-coupling-rules_system](./2026-10-19_dictinary-and-coupling-rules_system.md)
+- Физическая схема: [2026-10-19_database-schema_backend](../backend/2026-10-19_database-schema_backend.md)

@@ -6,7 +6,7 @@
 
 Назначение: контракты компонентов, форматирование и правила отображения логотипа, периода выплат, суммы на акцию, доходности, даты собрания и даты отсечки в карточках S1/S2 и модале S1.1.
 
-Основание: [ADR-0005](../system/adr/2026-10-20_adr-0005-dividend-metrics_system.md), [ADR-0006](../system/adr/2026-10-20_adr-0006-company-logos_system.md), [UI-спецификация](../ui/2026-10-20_dividend-metrics_ui.md), [типы DTO](./2026-10-19_types-and-api-client_frontend.md).
+Основание: [2026-10-20_adr-0005-dividend-metrics_system](../system/adr/2026-10-20_adr-0005-dividend-metrics_system.md), [2026-10-20_adr-0006-company-logos_system](../system/adr/2026-10-20_adr-0006-company-logos_system.md), [2026-10-20_dividend-metrics_ui](../ui/2026-10-20_dividend-metrics_ui.md), [2026-10-19_types-and-api-client_frontend](./2026-10-19_types-and-api-client_frontend.md).
 
 ## 1. Типы props
 
@@ -121,9 +121,19 @@ export function formatDate(isoDate: string): string;                   // «12.1
   - `DsiBadge`: `meeting.dsi`.
 - `WatchRow`:
   - `CompanyIdentity`: `item.logo_url`, `item.ticker`, `item.short_name`;
-  - `CompanyFacts`: `item.next_dividend`, `item.next_meeting_date`, `item.next_record_date`;
+  - `CompanyFacts`: «Период»/«На акцию»/«Доходность» — из
+    `item.next_dividend` (`.period`, `.amount_per_share`, `.yield_percent`),
+    «Собрание» — `item.next_meeting_date`, «Отсечка» — `item.next_record_date`;
   - `DsiBadge`: `item.dsi`.
 - `MeetingDetailsDialog`: `meeting.logo_url`, `meeting.dividend`, `meeting.dsi`.
+
+Поля `next_*` — результат выбора события на бэкенде (решение владельца от
+2026-10-22): `next_record_date` содержит дату события, а не обязательно дату
+закрытия реестра. При отсутствии будущей отсечки подставляется дата собрания
+с вопросом о дивидендах, и `next_record_date === next_meeting_date`; условия
+выплаты в `next_dividend` берутся из этого собрания. Признака источника в DTO
+нет, поэтому строка S2 отображает поля как есть, без выбора между «отсечкой» и
+«собранием».
 
 Никаких вычислений `yield = dps / price` на клиенте: цена и доходность — зона
 бэкенда. Это же правило действует для DSI (готовый снапшот).
@@ -133,7 +143,9 @@ export function formatDate(isoDate: string): string;                   // «12.1
 - Загрузка — скелетон карточки/строки с логотипом-заглушкой и полосой фактов.
 - Прошедшее собрание — факты видны; общее приглушение по C-06/C-09.
 - Частичные данные: `period` известен, `amount_per_share` — нет → «—» только в сумме; пять колонок сохраняются.
-- Нет отсечки (`record_date === null`) → в ячейке «Отсечка» `—`, карточка не скрывается.
+- Нет отсечки (`record_date === null` в `Meeting`; `next_record_date === null`
+  в `WatchlistItem` — будущих событий нет) → в ячейке «Отсечка» `—`,
+  карточка/строка не скрывается.
 - Нет логотипа → монограмма; интерфейс не «прыгает» (фиксированные 32×32).
 - DSI `null`: бейдж `DSI —`, подсказка доступна.
 
@@ -154,8 +166,8 @@ export function formatDate(isoDate: string): string;                   // «12.1
 
 ## 9. Связанные документы
 
-- [Типы и API-клиент](./2026-10-19_types-and-api-client_frontend.md)
-- [Архитектура фронтенда](./2026-10-19_frontend-architecture_frontend.md)
-- [UI-спецификация](../ui/2026-10-20_dividend-metrics_ui.md)
-- [API-контракт](../backend/2026-10-19_api-contract_backend.md)
-- [ADR-0006](../system/adr/2026-10-20_adr-0006-company-logos_system.md)
+- [2026-10-19_types-and-api-client_frontend](./2026-10-19_types-and-api-client_frontend.md)
+- [2026-10-19_frontend-architecture_frontend](./2026-10-19_frontend-architecture_frontend.md)
+- [2026-10-20_dividend-metrics_ui](../ui/2026-10-20_dividend-metrics_ui.md)
+- [2026-10-19_api-contract_backend](../backend/2026-10-19_api-contract_backend.md)
+- [2026-10-20_adr-0006-company-logos_system](../system/adr/2026-10-20_adr-0006-company-logos_system.md)

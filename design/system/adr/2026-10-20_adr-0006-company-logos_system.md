@@ -88,7 +88,7 @@
 ## Связанные документы
 
 - [ADR-0005](./2026-10-20_adr-0005-dividend-metrics_system.md)
-- [Каноническая модель](../2026-10-19_canonical-data-model_system.md)
-- [Схема БД](../../backend/2026-10-19_database-schema_backend.md)
-- [API-контракт](../../backend/2026-10-19_api-contract_backend.md)
-- [Frontend-спецификация](../../frontend/2026-10-20_dividend-metrics_frontend.md)
+- Каноническая модель: [2026-10-19_canonical-data-model_system](../2026-10-19_canonical-data-model_system.md)
+- Схема БД: [2026-10-19_database-schema_backend](../../backend/2026-10-19_database-schema_backend.md)
+- API-контракт: [2026-10-19_api-contract_backend](../../backend/2026-10-19_api-contract_backend.md)
+- Frontend-спецификация: [2026-10-20_dividend-metrics_frontend](../../frontend/2026-10-20_dividend-metrics_frontend.md)

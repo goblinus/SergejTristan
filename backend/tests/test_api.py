@@ -98,11 +98,11 @@ def test_watchlist_empty_page(client: TestClient) -> None:
     assert response.json() == {"items": [], "page": 1, "page_size": 50, "total": 0}
 
 
-def test_watchlist_create_not_implemented(client: TestClient) -> None:
-    """POST /watchlist пока возвращает 501."""
+def test_watchlist_create_unknown_ticker(client: TestClient) -> None:
+    """POST /watchlist на пустом справочнике — 404 ticker not found."""
     response = client.post("/api/v1/watchlist", json={"ticker": "sber", "threshold_days": 14})
-    assert response.status_code == 501
-    assert response.json() == {"detail": "not implemented"}
+    assert response.status_code == 404
+    assert response.json() == {"detail": "ticker not found"}
 
 
 def test_watchlist_create_threshold_validation(client: TestClient) -> None:
@@ -117,11 +117,11 @@ def test_watchlist_create_ticker_required(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_watchlist_delete_not_implemented(client: TestClient) -> None:
-    """DELETE /watchlist/{ticker} пока возвращает 501."""
+def test_watchlist_delete_missing_item(client: TestClient) -> None:
+    """DELETE /watchlist/{ticker} без сторожка — 404."""
     response = client.delete("/api/v1/watchlist/sber")
-    assert response.status_code == 501
-    assert response.json()["detail"].startswith("not implemented")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "watchlist item not found"}
 
 
 @pytest.mark.parametrize(

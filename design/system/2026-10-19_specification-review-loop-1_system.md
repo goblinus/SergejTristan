@@ -81,11 +81,11 @@
 
 ### frontend
 
-1. **типы-и-api-клиент**: переписать DTO и эндпоинты строго по `design/backend/2026-10-19_api-контракт_backend.md` с правками Р-4/Р-6: snake_case-поля (`ticker`, `short_name`, `meeting_date`, `meeting_type`, …), конверт `Page`, параметры `q`/`page`/`page_size`, тело POST `{ticker, threshold_days}`, идемпотентные 200/201, `DELETE /watchlist/{ticker}` по коду тикера. Убрать открытые вопросы №1–2 (решены: snake_case, `{detail}`).
+1. **типы-и-api-клиент**: переписать DTO и эндпоинты строго по `design/backend/2026-10-19_api-contract_backend.md` с правками Р-4/Р-6: snake_case-поля (`ticker`, `short_name`, `meeting_date`, `meeting_type`, …), конверт `Page`, параметры `q`/`page`/`page_size`, тело POST `{ticker, threshold_days}`, идемпотентные 200/201, `DELETE /watchlist/{ticker}` по коду тикера. Убрать открытые вопросы №1–2 (решены: snake_case, `{detail}`).
 2. **типы**: удалить `dividendAmount`/`dividendCurrency` и `lastTradingDay` (вне MVP, Р-5). `GET /meetings/{id}` оставить в списке эндпоинтов (Р-6), но без отдельной страницы.
 3. **роутинг + архитектура**: синхронизировать с картой экранов ui (Р-6): маршруты `/calendar` (редирект с `/`) и `/me`; детали собрания — модал с `?meeting=<id>`, маршрут `/meetings/:id` убрать; навигация «Календарь»/«Мои сторожки». Компонентное дерево привести к ui-вайрфреймам: S1 — список/сетка карточек `MeetingCard` (месячный грид CalendarMonth/CalendarDay/EventChip исключён — ui-kit его явно не проектирует), фильтры месяца/прошедших, `UpcomingList` сохранить.
 4. **архитектура/состояние**: добавить в дерево компонентов из ui-кита: `DeadlineIndicator` (C-07), `SnackBar` с undo при снятии сторожка (C-12; undo = повторный `POST /watchlist` — укладывается в идемпотентную семантику), модал деталей (C-08), `BottomNav` (C-02) и мобильную компоновку (в MVP, Р-6), офлайн-баннер и индикатор «обновлено N назад» (данные — из `fetched_at`, Р-6).
-5. **темизация**: перейти на токены и значения из `design/ui/2026-10-19_визуальный-стиль_ui.md` (`--bg-base`, `--surface-0..4`, `--warn`/`--danger` и контейнеры), шрифт Inter (системный фолбэк), иконки Material Symbols Rounded. Имена `--color-*` из текущего документа не сохранять.
+5. **темизация**: перейти на токены и значения из `design/ui/2026-10-19_visual-style_ui.md` (`--bg-base`, `--surface-0..4`, `--warn`/`--danger` и контейнеры), шрифт Inter (системный фолбэк), иконки Material Symbols Rounded. Имена `--color-*` из текущего документа не сохранять.
 6. **композаблы**: `useCalendar` должен включать отсечки без собрания — добавить endpoint-модуль `record-dates.ts` (`GET /record-dates?from&to`) и объединить в проекции календаря/UpcomingList (Р-6).
 
 ### ui
@@ -96,9 +96,9 @@
 
 ## Задачи области system (самостоятельно, до раунда 2)
 
-- Обновить `2026-10-19_глоссарий-и-правила-стыковки_system.md`: `record_date` вместо `cutoff_date`, `watchlist_items`/`/watchlist`, новое множество статусов, префикс `/api/v1` — с записью обновления.
-- Обновить `2026-10-19_модель-данных-каноническая_system.md` и `2026-10-19_er-модель_system.puml` по Р-2.
-- Обновить `2026-10-19_контейнеры-и-потоки_system.md`: расчёт статуса в API (Р-3), актуальные имена эндпоинтов.
+- Обновить `2026-10-19_dictinary-and-coupling-rules_system.md`: `record_date` вместо `cutoff_date`, `watchlist_items`/`/watchlist`, новое множество статусов, префикс `/api/v1` — с записью обновления.
+- Обновить `2026-10-19_canonical-data-model_system.md` и `2026-10-19_er-model_system.puml` по Р-2.
+- Обновить `2026-10-19_containers-and-data-streaming_system.md`: расчёт статуса в API (Р-3), актуальные имена эндпоинтов.
 - Рассмотреть ADR «Frontend toolchain» (запрос frontend, документ сборки §7): оформить ADR-0004 либо принять решением в этом ревью. Предварительно: стек Vite+TS+ESLint+Prettier+Vitest принят, ADR-0004 будет оформлен в раунде 2.
 
 ## Критерий согласования раунда 2

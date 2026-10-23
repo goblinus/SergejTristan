@@ -1,4 +1,4 @@
-"""Адаптер MOEX ISS: постраничная загрузка списка бумаг с повторами запросов."""
+"""Адаптер MOEX ISS: список бумаг и история дивидендов с повторами запросов."""
 
 import logging
 import time
@@ -15,6 +15,7 @@ from scripts.ingestion.parsers.moex_tickers import (
 )
 
 BASE_URL = "https://iss.moex.com/iss/engines/stock/markets/shares/securities.json"
+DIVIDENDS_URL = "https://iss.moex.com/iss/securities/{secid}/dividends.json"
 
 logger = logging.getLogger(__name__)
 
@@ -27,46 +28,60 @@ class MoexFormatSourceError(MoexSourceError):
     """Ответ источника не соответствует ожидаемой структуре."""
 
 
-def _request_page(client: httpx.Client, start: int, settings: Settings) -> dict[str, Any]:
-    """Загружает страницу с повторами на сетевых ошибках, 5xx и 429.
+def _request_json(
+    client: httpx.Client,
+    url: str,
+    settings: Settings,
+    *,
+    params: dict[str, Any] | None = None,
+    context: str = "",
+) -> dict[str, Any]:
+    """Загружает JSON-объект с повторами на сетевых ошибках, 5xx и 429.
 
     HTTP 4xx (кроме 429) не повторяются. Задержка между попытками —
-    1, 2, 4, ... секунды.
+    1, 2, 4, ... секунды. `context` добавляется в сообщения об ошибках
+    и логи повторов (например, `start=0` или `secid=SBER`).
     """
-    params = {"iss.meta": "off", "start": start}
+    where = f"url={url}" + (f" {context}" if context else "")
     attempt = 0
 
     while True:
         try:
-            response = client.get(BASE_URL, params=params)
+            response = client.get(url, params=params)
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
-                raise MoexFormatSourceError("MOEX ISS returned a non-object JSON")
+                raise MoexFormatSourceError(
+                    f"MOEX ISS returned a non-object JSON for {where}"
+                )
             return payload
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
             if 400 <= status < 500 and status != 429:
-                raise MoexSourceError(f"MOEX ISS HTTP {status} for start={start}") from exc
+                raise MoexSourceError(f"MOEX ISS HTTP {status} for {where}") from exc
             if attempt >= settings.http_retries:
                 raise MoexSourceError(
-                    f"MOEX ISS HTTP {status} after {attempt + 1} attempts"
+                    f"MOEX ISS HTTP {status} for {where} after {attempt + 1} attempts"
                 ) from exc
             delay = 2**attempt
             logger.warning(
-                "retry start=%d attempt=%d status=%d delay=%ds", start, attempt + 1, status, delay
+                "retry %s attempt=%d status=%d delay=%ds",
+                where,
+                attempt + 1,
+                status,
+                delay,
             )
             attempt += 1
             time.sleep(delay)
         except httpx.RequestError as exc:
             if attempt >= settings.http_retries:
                 raise MoexSourceError(
-                    f"MOEX ISS request failed after {attempt + 1} attempts: {exc}"
+                    f"MOEX ISS request failed for {where} after {attempt + 1} attempts: {exc}"
                 ) from exc
             delay = 2**attempt
             logger.warning(
-                "retry start=%d attempt=%d error=%s delay=%ds",
-                start,
+                "retry %s attempt=%d error=%s delay=%ds",
+                where,
                 attempt + 1,
                 type(exc).__name__,
                 delay,
@@ -74,7 +89,39 @@ def _request_page(client: httpx.Client, start: int, settings: Settings) -> dict[
             attempt += 1
             time.sleep(delay)
         except ValueError as exc:
-            raise MoexFormatSourceError(f"MOEX ISS returned invalid JSON: {exc}") from exc
+            raise MoexFormatSourceError(
+                f"MOEX ISS returned invalid JSON for {where}: {exc}"
+            ) from exc
+
+
+def _request_page(client: httpx.Client, start: int, settings: Settings) -> dict[str, Any]:
+    """Загружает страницу списка бумаг с повторами запросов."""
+    params = {"iss.meta": "off", "start": start}
+    return _request_json(client, BASE_URL, settings, params=params, context=f"start={start}")
+
+
+def fetch_dividends(
+    client: httpx.Client, settings: Settings, secid: str
+) -> dict[str, Any]:
+    """Загружает историю дивидендов эмитента: /iss/securities/{secid}/dividends.json.
+
+    Возвращает сырой JSON-объект ответа; разбор таблицы `dividends` выполняет
+    парсер. Пустой или пробельный `secid` отклоняется до запроса, чтобы
+    не уходить на URL без тикера.
+    """
+    code = secid.strip()
+    if not code:
+        raise ValueError("secid must not be empty")
+
+    payload = _request_json(
+        client,
+        DIVIDENDS_URL.format(secid=code),
+        settings,
+        params={"iss.meta": "off"},
+        context=f"secid={code}",
+    )
+    logger.debug("stage=fetch_dividends secid=%s", code)
+    return payload
 
 
 def fetch_securities(

@@ -6,7 +6,7 @@
 
 Назначение: зафиксировать хранение, расчёт и отдачу в API периода выплат, суммы на акцию, дивидендной доходности и DSI.
 
-Основание: [ADR-0005](../system/adr/2026-10-20_adr-0005-dividend-metrics_system.md), [схема БД](./2026-10-19_database-schema_backend.md), [API-контракт](./2026-10-19_api-contract_backend.md).
+Основание: [ADR-0005](../system/adr/2026-10-20_adr-0005-dividend-metrics_system.md), [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md), [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md).
 
 ## 1. Термины и поля
 
@@ -114,8 +114,8 @@ DSI = round(100 × (0.4 × R + 0.4 × S + 0.2 × N))
 
 ## 8. Связанные документы
 
-- [Схема БД](./2026-10-19_database-schema_backend.md)
-- [API-контракт](./2026-10-19_api-contract_backend.md)
-- [Скрипты сбора](./2026-10-19_collect-scripts-specifications_backend.md)
-- [Архитектура бэкенда](./2026-10-19_architecture_backend.md)
-- [UI-спецификация](../ui/2026-10-20_dividend-metrics_ui.md)
+- [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md)
+- [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md)
+- [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md)
+- [2026-10-19_architecture_backend](./2026-10-19_architecture_backend.md)
+- [2026-10-20_dividend-metrics_ui](../ui/2026-10-20_dividend-metrics_ui.md)

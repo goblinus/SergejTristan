@@ -4,7 +4,7 @@
 
 Структура Python-приложения бэкенда MVP «Дивидендный календарь»: слои, модули, конфигурация. Отвечает на вопрос: как организован код API-сервиса и скриптов сбора данных.
 
-Основание: ADR-0002 (веб-фреймворк — FastAPI), ADR-0001 (СУБД) в `design/system/adr/`, контейнер «Backend API» и «Data collectors» из [контейнеров и потоков](../system/2026-10-19_контейнеры-и-потоки_system.md).
+Основание: ADR-0002 (веб-фреймворк — FastAPI), ADR-0001 (СУБД) в `design/system/adr/`, контейнер «Backend API» и «Data collectors» из [2026-10-19_containers-and-data-streaming_system](../system/2026-10-19_containers-and-data-streaming_system.md).
 
 ## Принципы
 
@@ -16,22 +16,22 @@
 
 ## Слои
 
-См. диаграмму: [2026-10-19_слои-backend_backend.puml](./2026-10-19_слои-backend_backend.puml).
+См. диаграмму: [2026-10-19_backend-layers_backend](./2026-10-19_backend-layers_backend.puml).
 
 | Слой | Пакет | Ответственность |
 |---|---|---|
 | API | `app/api/` | FastAPI-роутеры: разбор запроса, валидация Pydantic, вызов сервиса, формирование ответа и HTTP-кодов ошибок. Без бизнес-логики и SQL. |
-| Service | `app/services/` | Бизнес-логика: сборка DTO, вычисление статуса сторожка (см. [правила расчёта статуса](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md)), расчёт дивидендной доходности и отдача DSI (см. [дивидендные метрики](./2026-10-20_dividend-metrics_backend.md)), пагинация, проверки существования тикера. |
-| Repository | `app/repositories/` | Доступ к данным через SQLAlchemy: запросы чтения для API, upsert для скриптов. Единственное место SQL/ORM-запросов. |
-| Models | `app/models/` | Декларативные ORM-модели SQLAlchemy 2.x по [схеме БД](./2026-10-19_схема-бд_backend.md). |
-| Schemas | `app/schemas/` | Pydantic-модели запросов/ответов по [API-контракту](./2026-10-19_api-контракт_backend.md). |
+| Service | `app/services/` | Бизнес-логика: сборка DTO, выбор события сторожка по правилу «отсечка `dividend_payment` → fallback на собрание с `dividend_question = true`» и расчёт производных полей `next_record_date`, `next_meeting_date`, `next_dividend`, `days_to_event`, `status` (см. [2026-10-19_alarm-date-calculation-rules_backend](./2026-10-19_alarm-date-calculation-rules_backend.md)), каноническая сортировка списка сторожков, расчёт дивидендной доходности и отдача DSI (см. [2026-10-20_dividend-metrics_backend](./2026-10-20_dividend-metrics_backend.md)), пагинация, проверки существования тикера. |
+| Repository | `app/repositories/` | Доступ к данным через SQLAlchemy: запросы чтения для API, в том числе выборки для сторожков по набору тикеров — ближайшие будущие отсечки `dividend_payment`, ближайшие будущие собрания с `dividend_question = true` и тикеры с прошедшими событиями (различение `no_date` / `past`); upsert для скриптов. Единственное место SQL/ORM-запросов. |
+| Models | `app/models/` | Декларативные ORM-модели SQLAlchemy 2.x по [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md). |
+| Schemas | `app/schemas/` | Pydantic-модели запросов/ответов по [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md). |
 | Core | `app/core/` | Конфигурация (`Settings`), создание engine/Session, логирование, lifespan-приложение. |
 
 ## Структура репозитория (backend/)
 
 ```text
 backend/
-├── pyproject.toml            # uv, см. 2026-10-19_зависимости-и-окружение_backend.md
+├── pyproject.toml            # uv, см. 2026-10-19_dependencies-and-env_backend.md
 ├── .env.example
 ├── app/
 │   ├── main.py               # создание FastAPI-приложения, подключение роутеров, /api/v1
@@ -49,12 +49,14 @@ backend/
 │   │   ├── tickers.py
 │   │   ├── calendar.py       # собрания + даты отсечки
 │   │   ├── dividends.py      # доходность на чтении, DSI в DTO
-│   │   └── watchlist.py      # CRUD + расчёт статуса и next_meeting_date
+│   │   └── watchlist.py      # CRUD; выбор события (отсечка -> fallback на собрание),
+│   │                         #   next_record_date/next_meeting_date/next_dividend/
+│   │                         #   days_to_event/status, сортировка списка
 │   ├── repositories/
 │   │   ├── tickers.py
 │   │   ├── meetings.py
 │   │   ├── record_dates.py
-│   │   └── watchlist.py
+│   │   └── watchlist.py      # сторожки + ближайшие отсечки/собрания и прошедшие события
 │   ├── models/               # SQLAlchemy ORM
 │   │   ├── base.py           # DeclarativeBase
 │   │   ├── ticker.py
@@ -68,9 +70,13 @@ backend/
 │       ├── dividend.py       # DividendTerms, DSI-поля
 │       ├── record_date.py
 │       └── watchlist.py
+├── assets/
+│   └── logos/                # курируемые SVG-логотипы {TICKER}.svg (вход sync_logos.py)
+├── static/
+│   └── logos/                # {TICKER}.svg после sync_logos.py, отдаётся как /static/logos/
 ├── scripts/                  # офлайн-сбор данных, см. спецификацию скриптов
 │   ├── fetch_tickers_moex.py
-│   ├── fetch_dividends_moex.py
+│   ├── fetch_dividend_history_moex.py
 │   ├── sync_logos.py
 │   ├── fetch_meetings_disclosure.py
 │   └── ingestion/
@@ -87,6 +93,8 @@ backend/
 ```
 
 Отличие от предварительной схемы `docs/repo-schema.md`: для MVP убраны `auth`, `notifications`, `ws`, `admin`, Celery/Redis — отсутствуют в объёме MVP (см. границы в обзоре архитектуры system).
+
+Каталоги ассетов и статики: `assets/logos/` — входные курируемые SVG (версионируются в репозитории), `static/logos/` — результат работы `sync_logos.py`, раздаётся API по пути `/static/logos/{TICKER}.svg` (в `app/main.py` каталог `static/` монтируется как `StaticFiles` при его наличии). Связь `tickers.logo_url` ↔ файл статики — по соглашению об имени, см. [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md).
 
 ## Конфигурация (pydantic-settings)
 
@@ -108,13 +116,13 @@ backend/
 - SQLAlchemy 2.x, синхронный engine (нагрузка MVP минимальна; async не требуется).
 - Зависимость `get_session` (FastAPI Depends) отдаёт `Session` на запрос с автоматическим закрытием; транзакция — на уровне сервиса записи сторожка.
 - Скрипты сбора создают собственную сессию напрямую из `app/core/db.py` (общий код подключения с API, копирования нет).
-- Схема и миграции — Alembic, см. [схему БД](./2026-10-19_схема-бд_backend.md).
+- Схема и миграции — Alembic, см. [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md).
 
 ## Связь со скриптами сбора
 
 - Общее: `app/models`, `app/repositories` (функции upsert), `app/core` (конфиг, БД, логирование), канонические Pydantic-DTO нормализации (`scripts/ingestion/normalize.py` — отдельные DTO, не API-схемы).
 - Не общее: роутеры, сервисы чтения, API-схемы. Скрипты не поднимают HTTP-сервер.
-- CLI и пайплайн: [2026-10-19_спецификация-скриптов-сбора_backend.md](./2026-10-19_спецификация-скриптов-сбора_backend.md).
+- CLI и пайплайн: [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md).
 
 ## Что осознанно не проектируется (вне MVP)
 
@@ -124,8 +132,8 @@ backend/
 
 ## Связанные документы
 
-- [2026-10-19_схема-бд_backend.md](./2026-10-19_схема-бд_backend.md)
-- [2026-10-19_api-контракт_backend.md](./2026-10-19_api-контракт_backend.md)
-- [2026-10-19_спецификация-скриптов-сбора_backend.md](./2026-10-19_спецификация-скриптов-сбора_backend.md)
-- [2026-10-19_зависимости-и-окружение_backend.md](./2026-10-19_зависимости-и-окружение_backend.md)
-- [2026-10-19_правила-расчёта-статуса-сторожка_backend.md](./2026-10-19_правила-расчёта-статуса-сторожка_backend.md)
+- [2026-10-19_database-schema_backend](./2026-10-19_database-schema_backend.md)
+- [2026-10-19_api-contract_backend](./2026-10-19_api-contract_backend.md)
+- [2026-10-19_collect-scripts-specifications_backend](./2026-10-19_collect-scripts-specifications_backend.md)
+- [2026-10-19_dependencies-and-env_backend](./2026-10-19_dependencies-and-env_backend.md)
+- [2026-10-19_alarm-date-calculation-rules_backend](./2026-10-19_alarm-date-calculation-rules_backend.md)

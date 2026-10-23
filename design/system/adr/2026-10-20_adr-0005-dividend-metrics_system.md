@@ -94,8 +94,8 @@
 
 ## Связанные документы
 
-- [Каноническая модель данных](../2026-10-19_canonical-data-model_system.md)
-- [Обзор архитектуры](../2026-10-19_architecture-summary_system.md)
-- [Схема БД backend](../../backend/2026-10-19_database-schema_backend.md)
-- [API-контракт backend](../../backend/2026-10-19_api-contract_backend.md)
-- [UI-спецификация](../../ui/2026-10-20_dividend-metrics_ui.md)
+- Каноническая модель данных: [2026-10-19_canonical-data-model_system](../2026-10-19_canonical-data-model_system.md)
+- Обзор архитектуры: [2026-10-19_architecture-summary_system](../2026-10-19_architecture-summary_system.md)
+- Схема БД backend: [2026-10-19_database-schema_backend](../../backend/2026-10-19_database-schema_backend.md)
+- API-контракт backend: [2026-10-19_api-contract_backend](../../backend/2026-10-19_api-contract_backend.md)
+- UI-спецификация: [2026-10-20_dividend-metrics_ui](../../ui/2026-10-20_dividend-metrics_ui.md)

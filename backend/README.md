@@ -142,3 +142,4 @@ uv run alembic upgrade head --sql  # offline-SQL без подключения �
   `2026-10-19_adr-0002-backend-web-framework_system.md`,
   `2026-10-20_adr-0005-dividend-metrics_system.md`,
   `2026-10-20_adr-0006-company-logos_system.md`.
+  

@@ -17,11 +17,11 @@ package "Backend API (FastAPI, uvicorn)" {
   package "service (бизнес-логика)" as svc {
     [services/tickers]
     [services/calendar]
-    [services/watchlist\n(+ расчёт статуса)]
+    [services/watchlist\n(CRUD сторожков;\nвыбор события:\nотсечка → fallback\nна собрание;\nnext_record_date,\nnext_meeting_date,\nnext_dividend,\ndays_to_event, status;\nсортировка списка)]
   }
   package "repository (SQLAlchemy)" as repo_r {
     [репозитории чтения]
-    [репозиторий сторожка\n(insert/delete)]
+    [репозиторий сторожка\n(CRUD watchlist_items;\nчтение ближайших отсечек\ndividend_payment, ближайших\nсобраний с dividend_question = true,\nтикеров с прошедшими событиями)]
   }
   package "models (ORM)" as models
   package "schemas (Pydantic DTO)" as schemas
@@ -69,10 +69,17 @@ cli --> ing
 repo_w --> models
 
 note right of svc
-Вычисляемый статус сторожка
-(no_date/far/near/hot/critical/past)
-считается на чтении,
-в БД не хранится
+Выбор события сторожка:
+ближайшая будущая отсечка
+dividend_payment, иначе —
+ближайшее будущее собрание
+с dividend_question = true.
+Вычисляемые на чтении поля:
+next_record_date, next_meeting_date,
+next_dividend, days_to_event, status
+(шкала no_date/far/near/hot/
+critical/past), плюс сортировка
+списка. В БД не хранятся.
 end note
 
 note bottom of models
